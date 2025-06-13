@@ -1,10 +1,11 @@
 package com.example.alphaverzio.ui.calendar
-
-
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import java.util.Date
 
+@Entity
 data class Event(
-    val id: Long = 0,
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val title: String,
     val description: String,
     val date: Date,
@@ -12,4 +13,3 @@ data class Event(
     val endTime: Date,
     var isCompleted: Boolean = false
 )
-

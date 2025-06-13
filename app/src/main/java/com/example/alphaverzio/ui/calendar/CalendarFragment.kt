@@ -11,16 +11,28 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.content.DialogInterface
 import android.util.Log
 import android.widget.EditText
+import android.widget.TextView
 import android.widget.TimePicker
 import android.widget.Toast
 import com.example.alphaverzio.R
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.*
+import com.example.alphaverzio.App
+import kotlinx.coroutines.*
+import androidx.lifecycle.lifecycleScope
+import com.kizitonwose.calendar.core.CalendarDay
+import com.kizitonwose.calendar.core.CalendarMonth
+import com.kizitonwose.calendar.core.DayPosition
+import com.kizitonwose.calendar.view.MonthDayBinder
+import com.kizitonwose.calendar.view.ViewContainer
+import java.time.YearMonth
+import java.time.DayOfWeek
+import java.time.LocalDate
 
 class CalendarFragment : Fragment() {
     private var _binding: FragmentCalendarBinding? = null
-    private var selectedDate: Calendar = Calendar.getInstance()
+    private var selectedDate: LocalDate = LocalDate.now()
     private val binding get() = _binding!!
     private lateinit var eventAdapter: EventAdapter
     private val eventsByDate: MutableMap<String, MutableList<Event>> = mutableMapOf()
@@ -39,26 +51,101 @@ class CalendarFragment : Fragment() {
         setupCalendarView()
         setupRecyclerView()
         setupAddEventButton()
+        loadEventsForSelectedDate()
     }
 
     private fun setupCalendarView() {
-        binding.calendarView.setOnDateChangeListener { _, year, month, dayOfMonth ->
-            selectedDate.set(year, month, dayOfMonth)
-            updateEventsForDate(selectedDate) // Refresh events for the newly selected date
+        val currentMonth = YearMonth.now()
+        val startMonth = currentMonth.minusMonths(12)
+        val endMonth = currentMonth.plusMonths(12)
+
+        binding.calendarView.setup(startMonth, endMonth, DayOfWeek.MONDAY)
+        binding.calendarView.scrollToMonth(currentMonth)
+
+        binding.calendarView.dayBinder = object : MonthDayBinder<DayViewContainer> {
+            override fun create(view: View) = DayViewContainer(view)
+
+            override fun bind(container: DayViewContainer, data: CalendarDay) {
+                container.textView.text = data.date.dayOfMonth.toString()
+
+                // Handle different day positions (current month, previous/next month)
+                when (data.position) {
+                    DayPosition.MonthDate -> {
+                        container.textView.visibility = View.VISIBLE
+                        container.textView.alpha = 1.0f
+
+                        // Highlight selected date
+                        if (data.date == selectedDate) {
+                            container.view.setBackgroundResource(R.drawable.selected_date_background)
+                        } else {
+                            container.view.background = null
+                        }
+
+                        container.view.setOnClickListener {
+                            val previousSelection = selectedDate
+                            selectedDate = data.date
+
+                            // Refresh the calendar to update selection
+                            binding.calendarView.notifyCalendarChanged()
+
+                            updateEventsForDate(selectedDate)
+                        }
+                    }
+                    DayPosition.InDate, DayPosition.OutDate -> {
+                        // Handle dates from previous/next months
+                        container.textView.visibility = View.VISIBLE
+                        container.textView.alpha = 0.3f
+                        container.view.background = null
+
+                        container.view.setOnClickListener {
+                            val previousSelection = selectedDate
+                            selectedDate = data.date
+
+                            // Navigate to the month of the selected date
+                            if (data.position == DayPosition.InDate) {
+                                binding.calendarView.findFirstVisibleMonth()?.let { month ->
+                                    binding.calendarView.scrollToMonth(month.yearMonth.minusMonths(1))
+                                }
+                            } else {
+                                binding.calendarView.findFirstVisibleMonth()?.let { month ->
+                                    binding.calendarView.scrollToMonth(month.yearMonth.plusMonths(1))
+                                }
+                            }
+
+                            updateEventsForDate(selectedDate)
+                        }
+                    }
+                }
+            }
         }
+    }
+
+    inner class DayViewContainer(view: View) : ViewContainer(view) {
+        val textView: TextView = view.findViewById(R.id.calendarDayText)
     }
 
     private fun setupRecyclerView() {
         eventAdapter = EventAdapter { event, isChecked ->
-            event.isCompleted = isChecked // Update the completion status
-            val selectedDate = Calendar.getInstance().apply { timeInMillis = binding.calendarView.date }
-            val dateKey = formatDate(selectedDate)
-            eventsByDate[dateKey]?.find { it == event }?.isCompleted = isChecked
-            Toast.makeText(
-                requireContext(),
-                if (isChecked) "Task marked as completed!" else "Task marked as incomplete!",
-                Toast.LENGTH_SHORT
-            ).show()
+            event.isCompleted = isChecked
+
+            // Update the event in database
+            lifecycleScope.launch {
+                try {
+                    App.database.eventDao().updateEvent(event)
+                    Toast.makeText(
+                        requireContext(),
+                        if (isChecked) "Task marked as completed!" else "Task marked as incomplete!",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } catch (e: Exception) {
+                    Log.e("CalendarFragment", "Error updating event", e)
+                    Toast.makeText(
+                        requireContext(),
+                        "Error updating task",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
         }
         binding.eventsRecyclerView.apply {
             layoutManager = LinearLayoutManager(context)
@@ -99,13 +186,8 @@ class CalendarFragment : Fragment() {
                 val description = descEdit.text.toString().trim()
 
                 if (title.isEmpty()) {
-                    // Show an error and prevent the dialog from closing
                     titleEdit.error = "Title cannot be empty"
                     return@setOnClickListener
-                }
-
-                val selectedDate = Calendar.getInstance().apply {
-                    timeInMillis = binding.calendarView.date // Get selected date from CalendarView
                 }
 
                 // Get selected start time
@@ -116,25 +198,34 @@ class CalendarFragment : Fragment() {
                 val endHour = endTimePicker.hour
                 val endMinute = endTimePicker.minute
 
-                // Set start time
-                val startTime = Calendar.getInstance()
-                startTime.set(
-                    selectedDate.get(Calendar.YEAR),
-                    selectedDate.get(Calendar.MONTH),
-                    selectedDate.get(Calendar.DAY_OF_MONTH),
-                    startHour,
-                    startMinute
-                )
+                // Convert LocalDate to Calendar for database operations
+                val selectedCalendar = Calendar.getInstance().apply {
+                    set(selectedDate.year, selectedDate.monthValue - 1, selectedDate.dayOfMonth)
+                }
 
-                // Set end time
-                val endTime = Calendar.getInstance()
-                endTime.set(
-                    selectedDate.get(Calendar.YEAR),
-                    selectedDate.get(Calendar.MONTH),
-                    selectedDate.get(Calendar.DAY_OF_MONTH),
-                    endHour,
-                    endMinute
-                )
+                // Set start time using the currently selected date
+                val startTime = Calendar.getInstance().apply {
+                    set(
+                        selectedDate.year,
+                        selectedDate.monthValue - 1,
+                        selectedDate.dayOfMonth,
+                        startHour,
+                        startMinute,
+                        0 // seconds
+                    )
+                }
+
+                // Set end time using the currently selected date
+                val endTime = Calendar.getInstance().apply {
+                    set(
+                        selectedDate.year,
+                        selectedDate.monthValue - 1,
+                        selectedDate.dayOfMonth,
+                        endHour,
+                        endMinute,
+                        0 // seconds
+                    )
+                }
 
                 // Ensure end time is after start time
                 if (endTime.after(startTime)) {
@@ -142,7 +233,8 @@ class CalendarFragment : Fragment() {
                         title,
                         description,
                         startTime.time,
-                        endTime.time
+                        endTime.time,
+                        selectedCalendar.time
                     )
                     dialog.dismiss()
                 } else {
@@ -158,36 +250,67 @@ class CalendarFragment : Fragment() {
         dialog.show()
     }
 
-    private fun addNewEvent(title: String, description: String, startTime: Date, endTime: Date) {
-        val dateKey = formatDate(selectedDate)
-        val newEvent = Event(
+    private fun addNewEvent(title: String, description: String, startTime: Date, endTime: Date, date: Date) {
+        val event = Event(
             title = title,
             description = description,
-            date = selectedDate.time,
+            date = date,
             startTime = startTime,
-            endTime = endTime
+            endTime = endTime,
+            isCompleted = false
         )
-        // Add the event to the map
-        val eventsForDate = eventsByDate[dateKey] ?: mutableListOf()
-        eventsForDate.add(newEvent)
-        eventsByDate[dateKey] = eventsForDate
-        updateEventsForDate(selectedDate)
-        Log.d("AddNewEvent", "Added event to date: $dateKey -> $newEvent")
+
+        lifecycleScope.launch {
+            try {
+                App.database.eventDao().insertEvent(event)
+                loadEventsForSelectedDate()
+                Toast.makeText(
+                    requireContext(),
+                    "Event added successfully!",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } catch (e: Exception) {
+                Log.e("CalendarFragment", "Error adding event", e)
+                Toast.makeText(
+                    requireContext(),
+                    "Error adding event",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
     }
-    private fun formatDate(calendar: Calendar): String {
+
+    private fun loadEventsForSelectedDate() {
+        updateEventsForDate(selectedDate)
+    }
+
+    private fun formatDate(date: LocalDate): String {
         val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val calendar = Calendar.getInstance().apply {
+            set(date.year, date.monthValue - 1, date.dayOfMonth)
+        }
         return formatter.format(calendar.time)
     }
 
-    private fun updateEventsForDate(selectedDate: Calendar) {
-        val dateKey = formatDate(selectedDate)
-
-        // Get events for the selected date or an empty list if none exist
-        val selectedEvents = eventsByDate[dateKey] ?: emptyList()
-
-        // Submit the list to the adapter
-        eventAdapter.submitList(selectedEvents)
-        Log.d("UpdateEventsForDate", "Events for date $dateKey: ${eventsByDate[dateKey]}")
+    private fun updateEventsForDate(selectedDate: LocalDate) {
+        lifecycleScope.launch {
+            try {
+                // Convert LocalDate to Date for database query
+                val calendar = Calendar.getInstance().apply {
+                    set(selectedDate.year, selectedDate.monthValue - 1, selectedDate.dayOfMonth)
+                }
+                val events = App.database.eventDao().getEventsByDate(calendar.time)
+                eventAdapter.submitList(events)
+                Log.d("UpdateEventsForDate", "Loaded ${events.size} events from DB for date: $selectedDate")
+            } catch (e: Exception) {
+                Log.e("CalendarFragment", "Error loading events", e)
+                Toast.makeText(
+                    requireContext(),
+                    "Error loading events",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
     }
 
     override fun onDestroyView() {
