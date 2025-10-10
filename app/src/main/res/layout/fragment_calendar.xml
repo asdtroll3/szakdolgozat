@@ -7,34 +7,31 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp">
+
     <androidx.cardview.widget.CardView
         android:id="@+id/headerCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:cardElevation="8dp"
-        app:cardCornerRadius="0dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:cardCornerRadius="0dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="72dp"
             android:background="@drawable/header_gradient_background"
-            android:orientation="horizontal"
             android:gravity="center_vertical"
+            android:orientation="horizontal"
             android:paddingHorizontal="24dp">
 
             <ImageView
                 android:id="@+id/companyLogo"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:src="@mipmap/ic_launcher_foreground"
                 android:layout_marginEnd="16dp"
+                android:contentDescription="Company Logo"
                 android:scaleType="centerInside"
-                android:contentDescription="Company Logo" />
+                android:src="@mipmap/ic_launcher_foreground" />
 
-            <!-- Company Name -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -44,64 +41,65 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.02"
                     android:text="CompanyName"
                     android:textColor="@android:color/white"
                     android:textSize="22sp"
-                    android:textStyle="bold"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="0.02"/>
-
+                    android:textStyle="bold" />
 
             </LinearLayout>
 
-            <!-- End decoration -->
             <View
                 android:layout_width="2dp"
                 android:layout_height="40dp"
-                android:background="@drawable/end_decoration"
-                android:layout_marginStart="16dp"/>
+                android:layout_marginStart="16dp"
+                android:background="@drawable/end_decoration" />
 
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
-    <!-- Calendar View -->
     <com.kizitonwose.calendar.view.CalendarView
         android:id="@+id/calendarView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
         android:layout_marginTop="16dp"
-        cv:cv_dayViewResource="@layout/calendar_day"/>
+        android:layout_marginBottom="16dp"
+        cv:cv_dayViewResource="@layout/calendar_day" />
 
-    <!-- Events Section -->
-    <TextView
-        android:id="@+id/eventsTitle"
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Events for Selected Date"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="8dp" />
+        android:layout_marginBottom="8dp">
 
-    <!-- Events RecyclerView -->
+        <TextView
+            android:id="@+id/eventsTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:text="Events for Selected Date"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/calendarAddEvent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:contentDescription="@string/add_event"
+            android:src="@android:drawable/ic_input_add"
+            app:fabSize="mini"
+            app:tint="@android:color/white" />
+    </RelativeLayout>
+
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/eventsRecyclerView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        tools:listitem="@layout/item_event"
-        />
-
-    <!-- Add Event Button -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/calendarAddEvent"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end"
-        android:layout_marginEnd="22dp"
-        android:layout_marginBottom="82dp"
-        android:src="@android:drawable/ic_input_add"
-        android:contentDescription="@string/add_event"
-        app:tint="@android:color/white" />
+        tools:listitem="@layout/item_event" />
 
 </LinearLayout>
