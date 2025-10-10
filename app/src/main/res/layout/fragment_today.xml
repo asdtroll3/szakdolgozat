@@ -117,19 +117,32 @@
         android:orientation="horizontal"
         app:layout_constraintGuide_percent="0.6" />
 
-    <TextView
-        android:id="@+id/bottomSection"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/todayEventsRecyclerView"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_margin="16dp"
-        android:background="@android:color/transparent"
-        android:gravity="center"
-        android:text="ide jon majd a mai eventek"
-        android:textColor="@android:color/darker_gray"
-        android:textStyle="italic"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="60dp"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintTop_toBottomOf="@id/guideline_middle"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:listitem="@layout/item_event" />
 
+    <TextView
+        android:id="@+id/noEventsTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No events scheduled for today."
+        android:textColor="@android:color/darker_gray"
+        android:textSize="16sp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/guideline_middle"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:visibility="visible"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

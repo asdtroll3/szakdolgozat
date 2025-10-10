@@ -13,10 +13,10 @@ class EventAdapter(
 ) : RecyclerView.Adapter<EventAdapter.EventViewHolder>() {
     private var events: List<Event> = emptyList()
 
-    class EventViewHolder(private val binding: ItemEventBinding) :
+    inner class EventViewHolder(private val binding: ItemEventBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(event: Event, onCheckedChange: (Boolean) -> Unit) {
+        fun bind(event: Event) {
             binding.eventTitle.text = event.title
             binding.eventDescription.text = event.description
 
@@ -27,10 +27,14 @@ class EventAdapter(
             // Display times
             binding.eventTime.text = "Starts: $formattedStartTime | Ends: $formattedEndTime"
 
-            // Bind checkbox state to event's completion status
+            // IMPORTANT: Remove the listener before setting the checked state.
+            // This prevents the listener from being fired when the view is recycled.
+            binding.taskCheckBox.setOnCheckedChangeListener(null)
             binding.taskCheckBox.isChecked = event.isCompleted
+
+            // Now, set the listener for user interaction.
             binding.taskCheckBox.setOnCheckedChangeListener { _, isChecked ->
-                onCheckedChange(isChecked) // Notify when the checkbox is toggled
+                onEventCheckedChange(event, isChecked)
             }
         }
 
@@ -49,9 +53,7 @@ class EventAdapter(
 
     override fun onBindViewHolder(holder: EventViewHolder, position: Int) {
         val event = events[position]
-        holder.bind(event) { isChecked ->
-            onEventCheckedChange(event, isChecked) // Trigger the callback to update the event state
-        }
+        holder.bind(event)
     }
 
     override fun getItemCount() = events.size

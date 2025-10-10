@@ -1,6 +1,7 @@
 package com.example.alphaverzio.ui.today
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,7 +13,11 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.alphaverzio.App
 import com.example.alphaverzio.R
+import com.example.alphaverzio.ui.calendar.EventAdapter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -22,6 +27,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
+import java.util.Calendar
 
 class TodayFragment : Fragment() {
 
@@ -30,11 +36,14 @@ class TodayFragment : Fragment() {
     private lateinit var chatDisplay: TextView
     private lateinit var chatScrollView: ScrollView
 
+    // Views for today's events
+    private lateinit var todayEventsRecyclerView: RecyclerView
+    private lateinit var noEventsTextView: TextView
+    private lateinit var eventAdapter: EventAdapter
+
     private val chatHistory = mutableListOf<ChatMessage>()
-
     private val client = OkHttpClient()
-
-    private val apiKey = "AIzaSyCtQ8vKKwdZsmKaesTfTO2l0FJ8CtTYzRQ"
+    private val apiKey = "APIKEY"
     private val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
     data class ChatMessage(
@@ -55,6 +64,13 @@ class TodayFragment : Fragment() {
 
         initializeViews(view)
         setupClickListeners()
+        setupRecyclerView()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Load events every time the fragment is shown to keep the list up-to-date
+        loadTodayEvents()
     }
 
     private fun initializeViews(view: View) {
@@ -62,6 +78,72 @@ class TodayFragment : Fragment() {
         sendButton = view.findViewById(R.id.sendButton)
         chatDisplay = view.findViewById(R.id.text_today)
         chatScrollView = view.findViewById(R.id.chatScrollView)
+
+        // Initialize new views
+        todayEventsRecyclerView = view.findViewById(R.id.todayEventsRecyclerView)
+        noEventsTextView = view.findViewById(R.id.noEventsTextView)
+    }
+
+    private fun setupRecyclerView() {
+        // Reuse the existing EventAdapter
+        eventAdapter = EventAdapter { event, isChecked ->
+            event.isCompleted = isChecked
+            lifecycleScope.launch {
+                try {
+                    App.database.eventDao().updateEvent(event)
+                    Toast.makeText(
+                        requireContext(),
+                        if (isChecked) "Task marked as completed!" else "Task marked as incomplete!",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } catch (e: Exception) {
+                    Log.e("TodayFragment", "Error updating event", e)
+                    Toast.makeText(requireContext(), "Error updating task", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        todayEventsRecyclerView.apply {
+            layoutManager = LinearLayoutManager(context)
+            adapter = eventAdapter
+        }
+    }
+
+    private fun loadTodayEvents() {
+        lifecycleScope.launch {
+            try {
+                // Get the start and end of the current day
+                val startOfDay = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                }
+                val endOfDay = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 23)
+                    set(Calendar.MINUTE, 59)
+                    set(Calendar.SECOND, 59)
+                }
+
+                // Query the database for events within today's range
+                val events = App.database.eventDao().getEventsByDateRange(startOfDay.time, endOfDay.time)
+
+                // Update the UI on the main thread
+                withContext(Dispatchers.Main) {
+                    if (events.isEmpty()) {
+                        noEventsTextView.visibility = View.VISIBLE
+                        todayEventsRecyclerView.visibility = View.GONE
+                    } else {
+                        noEventsTextView.visibility = View.GONE
+                        todayEventsRecyclerView.visibility = View.VISIBLE
+                        eventAdapter.submitList(events)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("TodayFragment", "Error loading today's events", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "Error loading events", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     private fun setupClickListeners() {

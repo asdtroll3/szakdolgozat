@@ -1,5 +1,6 @@
 package com.example.alphaverzio.ui.calendar
 
+import android.app.TimePickerDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -12,7 +13,6 @@ import android.content.DialogInterface
 import android.util.Log
 import android.widget.EditText
 import android.widget.TextView
-import android.widget.TimePicker
 import android.widget.Toast
 import com.example.alphaverzio.R
 import java.text.SimpleDateFormat
@@ -21,6 +21,7 @@ import java.util.*
 import com.example.alphaverzio.App
 import kotlinx.coroutines.*
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.textfield.TextInputEditText
 import com.kizitonwose.calendar.core.CalendarDay
 import com.kizitonwose.calendar.core.CalendarMonth
 import com.kizitonwose.calendar.core.DayPosition
@@ -29,6 +30,7 @@ import com.kizitonwose.calendar.view.ViewContainer
 import java.time.YearMonth
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.util.concurrent.TimeUnit
 
 class CalendarFragment : Fragment() {
     private var _binding: FragmentCalendarBinding? = null
@@ -36,6 +38,10 @@ class CalendarFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var eventAdapter: EventAdapter
     private val eventsByDate: MutableMap<String, MutableList<Event>> = mutableMapOf()
+
+    // Store selected start and end times
+    private var startCalendar: Calendar = Calendar.getInstance()
+    private var endCalendar: Calendar = Calendar.getInstance()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -159,24 +165,61 @@ class CalendarFragment : Fragment() {
         }
     }
 
+    private fun showTimePickerDialog(
+        context: android.content.Context,
+        calendar: Calendar,
+        onTimeSet: (Calendar) -> Unit
+    ) {
+        val timePickerDialog = TimePickerDialog(
+            context,
+            { _, hourOfDay, minute ->
+                val newCalendar = Calendar.getInstance().apply {
+                    time = calendar.time
+                    set(Calendar.HOUR_OF_DAY, hourOfDay)
+                    set(Calendar.MINUTE, minute)
+                }
+                onTimeSet(newCalendar)
+            },
+            calendar.get(Calendar.HOUR_OF_DAY),
+            calendar.get(Calendar.MINUTE),
+            true // 24-hour format
+        )
+        timePickerDialog.show()
+    }
+
     private fun showAddEventDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_event, null, false)
         val titleEdit = dialogView.findViewById<EditText>(R.id.eventTitleEdit)
         val descEdit = dialogView.findViewById<EditText>(R.id.eventDescriptionEdit)
-        val startTimePicker = dialogView.findViewById<TimePicker>(R.id.startTimePicker)
-        val endTimePicker = dialogView.findViewById<TimePicker>(R.id.endTimePicker)
+        val startTimeEdit = dialogView.findViewById<TextInputEditText>(R.id.startTimeEdit)
+        val endTimeEdit = dialogView.findViewById<TextInputEditText>(R.id.endTimeEdit)
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
-        // Ensure TimePickers are in 24-hour format
-        startTimePicker.setIs24HourView(true)
-        endTimePicker.setIs24HourView(true)
+        // Set initial times
+        startCalendar.time = Date()
+        endCalendar.time = Date()
+        endCalendar.add(Calendar.HOUR_OF_DAY, 1) // Default to one hour later
 
-        val dialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Add New Event")
-            .setView(dialogView)
-            .setPositiveButton("Add", null) // Temporarily set the listener to null
-            .setNegativeButton("Cancel") { dialogInterface: DialogInterface, _ ->
-                dialogInterface.dismiss()
+        startTimeEdit.setText(timeFormat.format(startCalendar.time))
+        endTimeEdit.setText(timeFormat.format(endCalendar.time))
+
+        startTimeEdit.setOnClickListener {
+            showTimePickerDialog(requireContext(), startCalendar) { newCalendar ->
+                startCalendar = newCalendar
+                startTimeEdit.setText(timeFormat.format(startCalendar.time))
             }
+        }
+
+        endTimeEdit.setOnClickListener {
+            showTimePickerDialog(requireContext(), endCalendar) { newCalendar ->
+                endCalendar = newCalendar
+                endTimeEdit.setText(timeFormat.format(endCalendar.time))
+            }
+        }
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(dialogView)
+            .setPositiveButton("Add", null) // Will be overridden
+            .setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
             .create()
 
         dialog.setOnShowListener {
@@ -189,15 +232,6 @@ class CalendarFragment : Fragment() {
                     titleEdit.error = "Title cannot be empty"
                     return@setOnClickListener
                 }
-
-                // Get selected start time
-                val startHour = startTimePicker.hour
-                val startMinute = startTimePicker.minute
-
-                // Get selected end time
-                val endHour = endTimePicker.hour
-                val endMinute = endTimePicker.minute
-
                 // Convert LocalDate to Calendar for database operations
                 val selectedCalendar = Calendar.getInstance().apply {
                     set(selectedDate.year, selectedDate.monthValue - 1, selectedDate.dayOfMonth)
@@ -209,9 +243,9 @@ class CalendarFragment : Fragment() {
                         selectedDate.year,
                         selectedDate.monthValue - 1,
                         selectedDate.dayOfMonth,
-                        startHour,
-                        startMinute,
-                        0 // seconds
+                        startCalendar.get(Calendar.HOUR_OF_DAY),
+                        startCalendar.get(Calendar.MINUTE),
+                        0
                     )
                 }
 
@@ -221,9 +255,9 @@ class CalendarFragment : Fragment() {
                         selectedDate.year,
                         selectedDate.monthValue - 1,
                         selectedDate.dayOfMonth,
-                        endHour,
-                        endMinute,
-                        0 // seconds
+                        endCalendar.get(Calendar.HOUR_OF_DAY),
+                        endCalendar.get(Calendar.MINUTE),
+                        0
                     )
                 }
 
@@ -246,7 +280,6 @@ class CalendarFragment : Fragment() {
                 }
             }
         }
-
         dialog.show()
     }
 
