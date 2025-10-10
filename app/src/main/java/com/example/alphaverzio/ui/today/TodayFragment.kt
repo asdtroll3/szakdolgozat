@@ -34,11 +34,11 @@ class TodayFragment : Fragment() {
 
     private val client = OkHttpClient()
 
-    private val apiKey = "AIzaSyAS5DdxZflY8IWwklBvVP3cTCPh2X0OKac"
-    private val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
+    private val apiKey = "AIzaSyCtQ8vKKwdZsmKaesTfTO2l0FJ8CtTYzRQ"
+    private val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
     data class ChatMessage(
-        val role: String, // "user" or "assistant"
+        val role: String, // "user" or "model"
         val content: String
     )
 
@@ -101,8 +101,8 @@ class TodayFragment : Fragment() {
         sendButton.isEnabled = false
         sendButton.text = "Sending..."
 
-        // Send message to ChatGPT
-        sendMessageToChatGPT(message)
+        // Send message to Gemini
+        sendMessageToGemini(message)
     }
 
     private fun addMessageToChat(sender: String, message: String) {
@@ -118,26 +118,20 @@ class TodayFragment : Fragment() {
         scrollToBottom()
     }
 
-    private fun sendMessageToChatGPT(message: String) {
+    private fun sendMessageToGemini(message: String) {
         lifecycleScope.launch {
             try {
-                // Add user message to chat history
+                // Add user message to chat history for context
                 chatHistory.add(ChatMessage("user", message))
 
                 val response = withContext(Dispatchers.IO) {
-                    makeApiCall(message)
+                    makeApiCall()
                 }
 
                 response?.let { aiResponse ->
-                    if (aiResponse.startsWith("API Error: 429")) {
-                        addMessageToChat("System", "Rate limit exceeded. Please wait a moment before trying again.")
-                    } else if (aiResponse.startsWith("API Error:") || aiResponse.startsWith("Network error:")) {
-                        addMessageToChat("System", aiResponse)
-                    } else {
-                        // Add AI response to history and display
-                        chatHistory.add(ChatMessage("assistant", aiResponse))
-                        addMessageToChat("Assistant", aiResponse)
-                    }
+                    // Add AI response to history and display
+                    chatHistory.add(ChatMessage("model", aiResponse))
+                    addMessageToChat("Gemini", aiResponse)
                 } ?: run {
                     addMessageToChat("System", "Sorry, I couldn't get a response. Please try again.")
                 }
@@ -152,43 +146,40 @@ class TodayFragment : Fragment() {
         }
     }
 
-    private suspend fun makeApiCall(message: String): String? {
+    private suspend fun makeApiCall(): String? {
         return withContext(Dispatchers.IO) {
             try {
-                // Gemini API format
+                // Build the request body from the entire chat history
                 val json = JSONObject().apply {
-                    val contents = JSONArray()
-                    val content = JSONObject().apply {
-                        val parts = JSONArray()
-                        parts.put(JSONObject().apply {
-                            put("text", message)
-                        })
-                        put("parts", parts)
+                    val contentsArray = JSONArray()
+                    chatHistory.forEach { msg ->
+                        val content = JSONObject().apply {
+                            put("role", msg.role)
+                            val partsArray = JSONArray().apply {
+                                put(JSONObject().apply {
+                                    put("text", msg.content)
+                                })
+                            }
+                            put("parts", partsArray)
+                        }
+                        contentsArray.put(content)
                     }
-                    contents.put(content)
-                    put("contents", contents)
+                    put("contents", contentsArray)
                 }
 
                 val requestBody = json.toString().toRequestBody("application/json".toMediaType())
 
                 val request = Request.Builder()
                     .url("$apiUrl?key=$apiKey")
-                    .addHeader("Content-Type", "application/json")
                     .post(requestBody)
                     .build()
 
-                val response = client.newCall(request).execute()
-
-                if (response.isSuccessful) {
-                    val responseBody = response.body?.string()
-                    responseBody?.let { parseGeminiResponse(it) }
-                } else {
-                    when (response.code) {
-                        429 -> "Rate limit exceeded. Please wait a few minutes before trying again."
-                        401 -> "Invalid API key. Please check your Gemini API key."
-                        403 -> "Access forbidden. Check your API key permissions."
-                        500 -> "Gemini server error. Please try again later."
-                        else -> "API Error: ${response.code} - ${response.message}"
+                client.newCall(request).execute().use { response -> // Use .use for automatic resource closing
+                    if (response.isSuccessful) {
+                        val responseBody = response.body?.string()
+                        responseBody?.let { parseGeminiResponse(it) }
+                    } else {
+                        "API Error: ${response.code} - ${response.message}"
                     }
                 }
 
@@ -205,33 +196,27 @@ class TodayFragment : Fragment() {
             val jsonResponse = JSONObject(responseBody)
             val candidates = jsonResponse.getJSONArray("candidates")
             if (candidates.length() > 0) {
-                val firstCandidate = candidates.getJSONObject(0)
-                val content = firstCandidate.getJSONObject("content")
+                val content = candidates.getJSONObject(0).getJSONObject("content")
                 val parts = content.getJSONArray("parts")
                 if (parts.length() > 0) {
-                    val firstPart = parts.getJSONObject(0)
-                    firstPart.getString("text").trim()
+                    parts.getJSONObject(0).getString("text").trim()
                 } else {
-                    "No response generated"
+                    "No response text found."
                 }
             } else {
-                "No response generated"
-            }
-        } catch (e: Exception) {
-            "Error parsing response: ${e.message}"
-        }
-    }
-
-    private fun parseApiResponse(responseBody: String): String? {
-        return try {
-            val jsonResponse = JSONObject(responseBody)
-            val choices = jsonResponse.getJSONArray("choices")
-            if (choices.length() > 0) {
-                val firstChoice = choices.getJSONObject(0)
-                val message = firstChoice.getJSONObject("message")
-                message.getString("content").trim()
-            } else {
-                "No response generated"
+                // Check for safety ratings or other reasons for no candidates
+                val promptFeedback = jsonResponse.optJSONObject("promptFeedback")
+                if (promptFeedback != null) {
+                    val safetyRatings = promptFeedback.optJSONArray("safetyRatings")
+                    if (safetyRatings != null && safetyRatings.length() > 0) {
+                        val firstRating = safetyRatings.getJSONObject(0)
+                        "Blocked due to safety concerns: ${firstRating.getString("category")}"
+                    } else {
+                        "Response was empty. It might have been blocked."
+                    }
+                } else {
+                    "No candidates found in response."
+                }
             }
         } catch (e: Exception) {
             "Error parsing response: ${e.message}"

@@ -295,11 +295,19 @@ class CalendarFragment : Fragment() {
     private fun updateEventsForDate(selectedDate: LocalDate) {
         lifecycleScope.launch {
             try {
-                // Convert LocalDate to Date for database query
-                val calendar = Calendar.getInstance().apply {
-                    set(selectedDate.year, selectedDate.monthValue - 1, selectedDate.dayOfMonth)
+                // Convert LocalDate to Calendar and set to start of the day
+                val startOfDay = Calendar.getInstance().apply {
+                    set(selectedDate.year, selectedDate.monthValue - 1, selectedDate.dayOfMonth, 0, 0, 0)
                 }
-                val events = App.database.eventDao().getEventsByDate(calendar.time)
+
+                // Set to end of the day
+                val endOfDay = Calendar.getInstance().apply {
+                    set(selectedDate.year, selectedDate.monthValue - 1, selectedDate.dayOfMonth, 23, 59, 59)
+                }
+
+                // Use the new query to get events within the date range
+                val events = App.database.eventDao().getEventsByDateRange(startOfDay.time, endOfDay.time)
+
                 eventAdapter.submitList(events)
                 Log.d("UpdateEventsForDate", "Loaded ${events.size} events from DB for date: $selectedDate")
             } catch (e: Exception) {

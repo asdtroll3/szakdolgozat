@@ -12,6 +12,6 @@ interface EventDao {
     @Update
     suspend fun updateEvent(event: Event)
 
-    @Query("SELECT * FROM Event WHERE date = :selectedDate")
-    suspend fun getEventsByDate(selectedDate: Date): List<Event>
+    @Query("SELECT * FROM Event WHERE date BETWEEN :startDate AND :endDate")
+    suspend fun getEventsByDateRange(startDate: Date, endDate: Date): List<Event>
 }
