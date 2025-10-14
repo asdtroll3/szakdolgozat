@@ -10,7 +10,10 @@
         android:id="@+id/headerCard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:cardCornerRadius="0dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        app:cardCornerRadius="8dp"
         app:cardElevation="8dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -35,14 +38,21 @@
 
             <TextView
                 android:id="@+id/headerText"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:fontFamily="sans-serif-medium"
                 android:letterSpacing="0.02"
                 android:text="What should I help you with today?"
                 android:textColor="@android:color/white"
-                android:textSize="22sp"
+                android:textSize="20dp"
                 android:textStyle="bold" />
+
+            <View
+                android:layout_width="2dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="16dp"
+                android:background="@drawable/end_decoration" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
@@ -69,12 +79,14 @@
             android:textColor="@android:color/black"
             android:textSize="16sp" />
 
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/sendButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:text="Send" />
+            android:background="@drawable/button_background_blue"
+            android:text="Send"
+            android:textColor="@android:color/white" />
     </LinearLayout>
 
     <androidx.cardview.widget.CardView
@@ -117,7 +129,7 @@
         android:layout_height="0dp"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="60dp"
+        android:layout_marginBottom="18dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

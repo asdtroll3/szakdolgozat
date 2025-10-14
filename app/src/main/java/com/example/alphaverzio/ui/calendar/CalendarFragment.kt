@@ -30,6 +30,8 @@ import com.kizitonwose.calendar.view.ViewContainer
 import java.time.YearMonth
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.util.concurrent.TimeUnit
 
 class CalendarFragment : Fragment() {
@@ -58,6 +60,37 @@ class CalendarFragment : Fragment() {
         setupRecyclerView()
         setupAddEventButton()
         loadEventsForSelectedDate()
+        updateEventsTitle(selectedDate)
+
+
+        val currentMonth = YearMonth.now()
+        val title = "${currentMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${currentMonth.year}"
+        binding.monthYearText.text = title
+
+        binding.calendarView.monthScrollListener = { month ->
+            val title = "${month.yearMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${month.yearMonth.year}"
+            binding.monthYearText.text = title
+        }
+    }
+
+    private fun updateEventsTitle(date: LocalDate) {
+        val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
+        val month = date.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
+        val dayOfMonth = date.dayOfMonth
+        val suffix = getDayOfMonthSuffix(dayOfMonth)
+        binding.eventsTitle.text = "Events for $dayOfWeek, $month ${dayOfMonth}$suffix"
+    }
+
+    private fun getDayOfMonthSuffix(n: Int): String {
+        if (n in 11..13) {
+            return "th"
+        }
+        return when (n % 10) {
+            1 -> "st"
+            2 -> "nd"
+            3 -> "rd"
+            else -> "th"
+        }
     }
 
     private fun setupCalendarView() {
@@ -90,6 +123,8 @@ class CalendarFragment : Fragment() {
                         container.view.setOnClickListener {
                             val previousSelection = selectedDate
                             selectedDate = data.date
+                            updateEventsTitle(selectedDate)
+
 
                             // Refresh the calendar to update selection
                             binding.calendarView.notifyCalendarChanged()
@@ -106,6 +141,7 @@ class CalendarFragment : Fragment() {
                         container.view.setOnClickListener {
                             val previousSelection = selectedDate
                             selectedDate = data.date
+                            updateEventsTitle(selectedDate)
 
                             // Navigate to the month of the selected date
                             if (data.position == DayPosition.InDate) {
