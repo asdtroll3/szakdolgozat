@@ -17,7 +17,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.alphaverzio.App
 import com.example.alphaverzio.R
+import com.example.alphaverzio.ui.calendar.Event
 import com.example.alphaverzio.ui.calendar.EventAdapter
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -86,25 +88,57 @@ class TodayFragment : Fragment() {
 
     private fun setupRecyclerView() {
         // Reuse the existing EventAdapter
-        eventAdapter = EventAdapter { event, isChecked ->
-            event.isCompleted = isChecked
-            lifecycleScope.launch {
-                try {
-                    App.database.eventDao().updateEvent(event)
-                    Toast.makeText(
-                        requireContext(),
-                        if (isChecked) "Task marked as completed!" else "Task marked as incomplete!",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                } catch (e: Exception) {
-                    Log.e("TodayFragment", "Error updating event", e)
-                    Toast.makeText(requireContext(), "Error updating task", Toast.LENGTH_SHORT).show()
+        eventAdapter = EventAdapter(
+            onEventCheckedChange = { event, isChecked ->
+                event.isCompleted = isChecked
+                lifecycleScope.launch {
+                    try {
+                        App.database.eventDao().updateEvent(event)
+                        Toast.makeText(
+                            requireContext(),
+                            if (isChecked) "Task marked as completed!" else "Task marked as incomplete!",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } catch (e: Exception) {
+                        Log.e("TodayFragment", "Error updating event", e)
+                        Toast.makeText(requireContext(), "Error updating task", Toast.LENGTH_SHORT).show()
+                    }
                 }
+            },
+            onEventDeleteClick = { event ->
+                showDeleteConfirmationDialog(event)
             }
-        }
+        )
         todayEventsRecyclerView.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = eventAdapter
+        }
+    }
+
+    private fun showDeleteConfirmationDialog(event: Event) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Delete Event")
+            .setMessage("Are you sure you want to delete '${event.title}'?")
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setPositiveButton("Delete") { dialog, _ ->
+                deleteEvent(event)
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun deleteEvent(event: Event) {
+        lifecycleScope.launch {
+            try {
+                App.database.eventDao().deleteEvent(event)
+                Toast.makeText(requireContext(), "Event deleted", Toast.LENGTH_SHORT).show()
+                loadTodayEvents() // Refresh the list
+            } catch (e: Exception) {
+                Log.e("TodayFragment", "Error deleting event", e)
+                Toast.makeText(requireContext(), "Error deleting event", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

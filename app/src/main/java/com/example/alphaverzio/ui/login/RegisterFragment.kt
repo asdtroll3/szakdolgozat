@@ -20,15 +20,16 @@ class RegisterFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentRegisterBinding.inflate(inflater, container, false)
-
-        // Hide the bottom navigation view
-        activity?.findViewById<BottomNavigationView>(R.id.nav_view)?.visibility = View.GONE
-
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Hide the bottom navigation view by posting to the view's message queue
+        view.post {
+            activity?.findViewById<BottomNavigationView>(R.id.nav_view)?.visibility = View.GONE
+        }
 
         binding.registerButtonSubmit.setOnClickListener {
             val username = binding.usernameEdit.text.toString().trim()
@@ -54,7 +55,5 @@ class RegisterFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-        // Restore the bottom navigation view
-        activity?.findViewById<BottomNavigationView>(R.id.nav_view)?.visibility = View.VISIBLE
     }
 }

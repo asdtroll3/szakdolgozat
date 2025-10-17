@@ -9,7 +9,8 @@ import java.util.Date
 import java.util.Locale
 
 class EventAdapter(
-    private val onEventCheckedChange: (Event, Boolean) -> Unit // Callback to handle checkbox state change
+    private val onEventCheckedChange: (Event, Boolean) -> Unit, // Callback to handle checkbox state change
+    private val onEventDeleteClick: (Event) -> Unit // Callback for delete icon click
 ) : RecyclerView.Adapter<EventAdapter.EventViewHolder>() {
     private var events: List<Event> = emptyList()
 
@@ -35,6 +36,11 @@ class EventAdapter(
             // Now, set the listener for user interaction.
             binding.taskCheckBox.setOnCheckedChangeListener { _, isChecked ->
                 onEventCheckedChange(event, isChecked)
+            }
+
+            // Set delete click listener
+            binding.deleteEventIcon.setOnClickListener {
+                onEventDeleteClick(event)
             }
         }
 

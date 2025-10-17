@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/white"
+    android:background="?android:attr/colorBackground"
     tools:context=".ui.home.HomeFragment">
 
     <androidx.cardview.widget.CardView
@@ -88,14 +88,14 @@
                 android:layout_height="24dp"
                 android:contentDescription="Login"
                 android:src="@drawable/ic_login"
-                app:tint="@android:color/black" />
+                app:tint="?attr/colorOnSurface" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:text="Login"
-                android:textColor="@android:color/black"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="16sp" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
@@ -125,14 +125,14 @@
                 android:layout_height="24dp"
                 android:contentDescription="Settings"
                 android:src="@drawable/ic_settings"
-                app:tint="@android:color/black" />
+                app:tint="?attr/colorOnSurface" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:text="Settings"
-                android:textColor="@android:color/black"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="16sp" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
@@ -154,17 +154,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="My Projects"
-            android:textColor="@android:color/black"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="18sp"
             android:textStyle="bold" />
-
-        <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:layout_marginStart="4dp"
-            android:contentDescription="View More"
-            android:src="@drawable/ic_chevron_right"
-            app:tint="@android:color/darker_gray" />
 
         <Space
             android:layout_width="0dp"
@@ -178,7 +170,7 @@
             android:layout_marginEnd="16dp"
             android:contentDescription="Add Project"
             android:src="@drawable/ic_plus"
-            app:tint="@android:color/darker_gray" />
+            app:tint="?attr/colorOnSecondary" />
 
         <ImageView
             android:id="@+id/dropdownProjectsIcon"
@@ -186,7 +178,7 @@
             android:layout_height="24dp"
             android:contentDescription="Dropdown Projects"
             android:src="@drawable/ic_chevron_down"
-            app:tint="@android:color/darker_gray" />
+            app:tint="?attr/colorOnSecondary" />
     </LinearLayout>
 
     <androidx.cardview.widget.CardView
@@ -219,7 +211,7 @@
                     android:layout_height="24dp"
                     android:contentDescription="Home Project"
                     android:src="@drawable/ic_home_project"
-                    app:tint="@android:color/black" />
+                    app:tint="?attr/colorOnSurface" />
 
                 <TextView
                     android:layout_width="0dp"
@@ -227,14 +219,14 @@
                     android:layout_marginStart="16dp"
                     android:layout_weight="1"
                     android:text="Home"
-                    android:textColor="@android:color/black"
+                    android:textColor="?attr/colorOnSurface"
                     android:textSize="16sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0"
-                    android:textColor="@android:color/darker_gray"
+                    android:textColor="?attr/colorOnSecondary"
                     android:textSize="16sp" />
             </LinearLayout>
 
@@ -257,7 +249,7 @@
                     android:layout_height="24dp"
                     android:contentDescription="Manage Projects"
                     android:src="@drawable/baseline_edit_24"
-                    app:tint="@android:color/black" />
+                    app:tint="?attr/colorOnSurface" />
 
                 <TextView
                     android:layout_width="0dp"
@@ -265,7 +257,7 @@
                     android:layout_marginStart="16dp"
                     android:layout_weight="1"
                     android:text="Manage Projects"
-                    android:textColor="@android:color/black"
+                    android:textColor="?attr/colorOnSurface"
                     android:textSize="16sp" />
             </LinearLayout>
         </LinearLayout>

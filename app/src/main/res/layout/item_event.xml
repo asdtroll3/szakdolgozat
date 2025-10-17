@@ -12,38 +12,36 @@
         android:layout_height="wrap_content"
         android:padding="16dp">
 
-        <!-- Event Title -->
         <TextView
             android:id="@+id/eventTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@android:color/black"
+            android:textColor="?attr/colorOnSurface"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toStartOf="@+id/deleteEventIcon"
+            android:layout_marginEnd="8dp" />
 
-        <!-- Event Description -->
         <TextView
             android:id="@+id/eventDescription"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:textSize="14sp"
-            android:textColor="@android:color/darker_gray"
+            android:textColor="?attr/colorOnSecondary"
             app:layout_constraintTop_toBottomOf="@id/eventTitle"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- Event Time -->
         <TextView
             android:id="@+id/eventTime"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:textSize="14sp"
-            android:textColor="@android:color/black"
+            android:textColor="?attr/colorOnSurface"
             app:layout_constraintTop_toBottomOf="@id/eventDescription"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
@@ -56,6 +54,19 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             android:checked="false" />
+
+        <ImageView
+            android:id="@+id/deleteEventIcon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_delete"
+            android:contentDescription="Delete event"
+            app:tint="?attr/colorOnSecondary"
+            android:padding="4dp"
+            android:layout_marginEnd="8dp"
+            app:layout_constraintEnd_toStartOf="@id/taskCheckBox"
+            app:layout_constraintTop_toTopOf="@id/taskCheckBox"
+            app:layout_constraintBottom_toBottomOf="@id/taskCheckBox"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

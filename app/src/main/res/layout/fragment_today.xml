@@ -78,7 +78,7 @@
             android:inputType="text"
             android:minHeight="48dp"
             android:padding="12dp"
-            android:textColor="@android:color/black"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="16sp" />
 
         <androidx.appcompat.widget.AppCompatButton
@@ -118,7 +118,7 @@
                 android:layout_height="wrap_content"
                 android:lineSpacingExtra="4dp"
                 android:text=""
-                android:textColor="@android:color/black"
+                android:textColor="?attr/colorOnSurface"
                 android:textIsSelectable="true"
                 android:textSize="16sp"
                 tools:ignore="SpeakableTextPresentCheck" />

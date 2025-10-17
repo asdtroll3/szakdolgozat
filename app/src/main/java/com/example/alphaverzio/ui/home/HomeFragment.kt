@@ -35,6 +35,10 @@ class HomeFragment : Fragment() {
             findNavController().navigate(R.id.action_navigation_home_to_loginFragment)
         }
 
+        binding.settingsDetailCard.setOnClickListener {
+            findNavController().navigate(R.id.action_navigation_home_to_settingsFragment)
+        }
+
         // Observe the login state
         loginViewModel.loggedInUser.observe(viewLifecycleOwner) { user ->
             if (user != null) {

@@ -4,6 +4,7 @@
     <string name="title_home">Home</string>
     <string name="title_calendar">Calendar</string>
     <string name="title_mail">Mail</string>
+    <string name="title_settings">Settings</string>
     <string name="add_event">Add Event</string>
     <string name="toggle_password_visibility">Toggle password visibility</string>
 

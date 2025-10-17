@@ -325,28 +325,32 @@ class CalendarFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        eventAdapter = EventAdapter { event, isChecked ->
-            event.isCompleted = isChecked
-
-            // Update the event in database
-            lifecycleScope.launch {
-                try {
-                    App.database.eventDao().updateEvent(event)
-                    Toast.makeText(
-                        requireContext(),
-                        if (isChecked) "Task marked as completed!" else "Task marked as incomplete!",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                } catch (e: Exception) {
-                    Log.e("CalendarFragment", "Error updating event", e)
-                    Toast.makeText(
-                        requireContext(),
-                        "Error updating task",
-                        Toast.LENGTH_SHORT
-                    ).show()
+        eventAdapter = EventAdapter(
+            onEventCheckedChange = { event, isChecked ->
+                event.isCompleted = isChecked
+                // Update the event in database
+                lifecycleScope.launch {
+                    try {
+                        App.database.eventDao().updateEvent(event)
+                        Toast.makeText(
+                            requireContext(),
+                            if (isChecked) "Task marked as completed!" else "Task marked as incomplete!",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } catch (e: Exception) {
+                        Log.e("CalendarFragment", "Error updating event", e)
+                        Toast.makeText(
+                            requireContext(),
+                            "Error updating task",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 }
+            },
+            onEventDeleteClick = { event ->
+                showDeleteConfirmationDialog(event)
             }
-        }
+        )
         binding.eventsRecyclerView.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = eventAdapter
@@ -506,6 +510,34 @@ class CalendarFragment : Fragment() {
             }
         }
     }
+
+    private fun showDeleteConfirmationDialog(event: Event) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Delete Event")
+            .setMessage("Are you sure you want to delete '${event.title}'?")
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setPositiveButton("Delete") { dialog, _ ->
+                deleteEvent(event)
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun deleteEvent(event: Event) {
+        lifecycleScope.launch {
+            try {
+                App.database.eventDao().deleteEvent(event)
+                Toast.makeText(requireContext(), "Event deleted", Toast.LENGTH_SHORT).show()
+                loadEventsForSelectedDate() // Refresh the list
+            } catch (e: Exception) {
+                Log.e("CalendarFragment", "Error deleting event", e)
+                Toast.makeText(requireContext(), "Error deleting event", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
 
     private fun loadEventsForSelectedDate() {
         updateEventsForDate(selectedDate)

@@ -13,6 +13,9 @@
         <action
             android:id="@+id/action_navigation_home_to_loginFragment"
             app:destination="@id/loginFragment" />
+        <action
+            android:id="@+id/action_navigation_home_to_settingsFragment"
+            app:destination="@id/navigation_settings" />
     </fragment>
 
     <fragment
@@ -32,6 +35,12 @@
         android:name="com.example.alphaverzio.ui.mail.MailFragment"
         android:label="@string/title_mail"
         tools:layout="@layout/fragment_mail" />
+
+    <fragment
+        android:id="@+id/navigation_settings"
+        android:name="com.example.alphaverzio.ui.settings.SettingsFragment"
+        android:label="@string/title_settings"
+        tools:layout="@layout/fragment_settings" />
 
     <fragment
         android:id="@+id/loginFragment"
