@@ -96,7 +96,7 @@
         android:layout_margin="16dp"
         app:cardCornerRadius="12dp"
         app:cardElevation="4dp"
-        app:layout_constraintBottom_toTopOf="@+id/todayEventsRecyclerView"
+        app:layout_constraintBottom_toTopOf="@+id/bottomContentContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/chatInputLayout"
@@ -123,32 +123,36 @@
         </ScrollView>
     </androidx.cardview.widget.CardView>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/todayEventsRecyclerView"
+    <FrameLayout
+        android:id="@+id/bottomContentContainer"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="18dp"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/chatCard"
-        app:layout_constraintVertical_weight="1"
-        tools:listitem="@layout/item_event" />
+        app:layout_constraintVertical_weight="1">
 
-    <TextView
-        android:id="@+id/noEventsTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="No events scheduled for today."
-        android:textColor="@android:color/darker_gray"
-        android:textSize="16sp"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="@id/todayEventsRecyclerView"
-        app:layout_constraintEnd_toEndOf="@id/todayEventsRecyclerView"
-        app:layout_constraintStart_toStartOf="@id/todayEventsRecyclerView"
-        app:layout_constraintTop_toTopOf="@id/todayEventsRecyclerView"
-        tools:visibility="visible" />
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/todayEventsRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            tools:listitem="@layout/item_event" />
+
+        <TextView
+            android:id="@+id/noEventsTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="No events scheduled for today."
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </FrameLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -181,7 +181,7 @@ class TodayFragment : Fragment() {
 
         // Disable send button while processing
         sendButton.isEnabled = false
-        sendButton.text = "Sending..."
+        sendButton.text = getString(R.string.sending)
 
         // Send message to Gemini
         sendMessageToGemini(message)
@@ -223,7 +223,7 @@ class TodayFragment : Fragment() {
             } finally {
                 // Re-enable send button
                 sendButton.isEnabled = true
-                sendButton.text = "Send"
+                sendButton.text = getString(R.string.send)
             }
         }
     }

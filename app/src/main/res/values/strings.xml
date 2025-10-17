@@ -6,4 +6,7 @@
     <string name="title_mail">Mail</string>
     <string name="add_event">Add Event</string>
     <string name="toggle_password_visibility">Toggle password visibility</string>
+
+    <string name="send">Send</string>
+    <string name="sending">Sending...</string>
 </resources>
