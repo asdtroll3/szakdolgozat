@@ -188,6 +188,7 @@
             android:layout_height="0dp"
             android:layout_weight="1"
             android:layout_margin="8dp"
+            android:layout_marginTop="0dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="4dp">
 
@@ -222,6 +223,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:layout_marginStart="8dp"
                 android:background="@drawable/input_background"
                 android:hint="Ask me anything..."
                 android:inputType="text"
@@ -235,6 +237,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
                 android:background="@drawable/button_background_blue"
                 android:text="Send"
                 android:textColor="@android:color/white" />
