@@ -61,7 +61,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:hint="Start Time"
-            app:startIconDrawable="@drawable/baseline_calendar_today_24">
+            app:startIconDrawable="@drawable/ic_today">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/startTimeEdit"
@@ -83,7 +83,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:hint="End Time"
-            app:startIconDrawable="@drawable/baseline_calendar_today_24">
+            app:startIconDrawable="@drawable/ic_today">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/endTimeEdit"

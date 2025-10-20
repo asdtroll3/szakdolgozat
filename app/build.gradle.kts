@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.alphaverzio"
+    namespace = "com.example.Taskly"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.alphaverzio"
+        applicationId = "com.example.Taskly"
         minSdk = 29
         targetSdk = 34
         versionCode = 1

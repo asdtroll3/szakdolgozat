@@ -7,7 +7,7 @@
 
     <fragment
         android:id="@+id/navigation_home"
-        android:name="com.example.alphaverzio.ui.home.HomeFragment"
+        android:name="com.example.Taskly.ui.home.HomeFragment"
         android:label="@string/title_home"
         tools:layout="@layout/fragment_home" >
         <action
@@ -20,31 +20,31 @@
 
     <fragment
         android:id="@+id/navigation_today"
-        android:name="com.example.alphaverzio.ui.today.TodayFragment"
+        android:name="com.example.Taskly.ui.today.TodayFragment"
         android:label="@string/title_today"
         tools:layout="@layout/fragment_today" />
 
     <fragment
         android:id="@+id/navigation_calendar"
-        android:name="com.example.alphaverzio.ui.calendar.CalendarFragment"
+        android:name="com.example.Taskly.ui.calendar.CalendarFragment"
         android:label="@string/title_calendar"
         tools:layout="@layout/fragment_calendar" />
 
     <fragment
         android:id="@+id/navigation_mail"
-        android:name="com.example.alphaverzio.ui.mail.MailFragment"
+        android:name="com.example.Taskly.ui.mail.MailFragment"
         android:label="@string/title_mail"
         tools:layout="@layout/fragment_mail" />
 
     <fragment
         android:id="@+id/navigation_settings"
-        android:name="com.example.alphaverzio.ui.settings.SettingsFragment"
+        android:name="com.example.Taskly.ui.settings.SettingsFragment"
         android:label="@string/title_settings"
         tools:layout="@layout/fragment_settings" />
 
     <fragment
         android:id="@+id/loginFragment"
-        android:name="com.example.alphaverzio.ui.login.LoginFragment"
+        android:name="com.example.Taskly.ui.login.LoginFragment"
         android:label="Login"
         tools:layout="@layout/fragment_login" >
         <action
@@ -54,7 +54,7 @@
 
     <fragment
         android:id="@+id/registerFragment"
-        android:name="com.example.alphaverzio.ui.login.RegisterFragment"
+        android:name="com.example.Taskly.ui.login.RegisterFragment"
         android:label="Register"
         tools:layout="@layout/fragment_register" />
 

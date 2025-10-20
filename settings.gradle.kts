@@ -20,6 +20,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "AlphaVerzio"
+rootProject.name = "Taskly"
 include(":app")
  

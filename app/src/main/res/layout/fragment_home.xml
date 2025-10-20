@@ -248,7 +248,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:contentDescription="Manage Projects"
-                    android:src="@drawable/baseline_edit_24"
+                    android:src="@drawable/ic_edit"
                     app:tint="?attr/colorOnSurface" />
 
                 <TextView

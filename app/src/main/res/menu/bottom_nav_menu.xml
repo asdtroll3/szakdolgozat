@@ -2,17 +2,17 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/navigation_today"
-        android:icon="@drawable/baseline_calendar_today_24"
+        android:icon="@drawable/ic_today"
         android:title="@string/title_today" />
 
     <item
         android:id="@+id/navigation_calendar"
-        android:icon="@drawable/baseline_calendar_month_24"
+        android:icon="@drawable/ic_calendar"
         android:title="@string/title_calendar" />
 
     <item
         android:id="@+id/navigation_mail"
-        android:icon="@drawable/baseline_attach_email_24"
+        android:icon="@drawable/ic_mail"
         android:title="@string/title_mail" />
 
     <item
