@@ -48,7 +48,7 @@ class TodayFragment : Fragment() {
 
     private val chatHistory = mutableListOf<ChatMessage>()
     private val client = OkHttpClient()
-    private val apiKey = ""
+    private val apiKey = "AIzaSyCtQ8vKKwdZsmKaesTfTO2l0FJ8CtTYzRQ"
     private val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
     private val loginViewModel: LoginViewModel by activityViewModels()

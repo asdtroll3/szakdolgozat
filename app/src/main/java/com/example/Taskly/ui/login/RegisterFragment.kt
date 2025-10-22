@@ -7,14 +7,19 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import com.example.Taskly.R
 import com.example.Taskly.databinding.FragmentRegisterBinding
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import kotlinx.coroutines.launch
 
 class RegisterFragment : Fragment() {
 
     private var _binding: FragmentRegisterBinding? = null
     private val binding get() = _binding!!
+
+    private val loginViewModel: LoginViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -38,19 +43,26 @@ class RegisterFragment : Fragment() {
             val password = binding.passwordEditRegister.text.toString()
             val confirmPassword = binding.confirmPasswordEdit.text.toString()
 
-            if (username.isEmpty() || email.isEmpty() || password.isEmpty()) {
+            if (username.isEmpty() || email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
                 Toast.makeText(requireContext(), "Please fill out all fields", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            if (password != confirmPassword) {
-                Toast.makeText(requireContext(), "Passwords do not match", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
+            // Launch a coroutine to call the suspend function
+            lifecycleScope.launch {
+                val errorMessage = loginViewModel.register(username, email, password, confirmPassword)
 
-            // TODO: Add user registration logic here
-            Toast.makeText(requireContext(), "Registration successful (not implemented)", Toast.LENGTH_SHORT).show()
+                if (errorMessage == null) {
+                    // Success!
+                    Toast.makeText(requireContext(), "Registration successful!", Toast.LENGTH_SHORT).show()
+                    findNavController().popBackStack() // Go back to the login screen
+                } else {
+                    // Show the specific error message from the ViewModel
+                    Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show()
+                }
+            }
         }
+
         binding.backButton.setOnClickListener {
             // Navigate back to the Login page
             findNavController().popBackStack()

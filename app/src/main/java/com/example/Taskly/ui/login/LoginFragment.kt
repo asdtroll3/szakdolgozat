@@ -7,10 +7,12 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.Taskly.R
 import com.example.Taskly.databinding.FragmentLoginBinding
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import kotlinx.coroutines.launch
 
 class LoginFragment : Fragment() {
 
@@ -40,12 +42,15 @@ class LoginFragment : Fragment() {
             val email = binding.emailEdit.text.toString().trim()
             val password = binding.passwordEdit.text.toString().trim()
 
-            if (loginViewModel.login(email, password)) {
-                // Navigate back to the home screen on successful login
-                findNavController().popBackStack()
-                Toast.makeText(requireContext(), "Login Successful!", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(requireContext(), "Invalid email or password", Toast.LENGTH_SHORT).show()
+            // Launch a coroutine to call the suspend function
+            lifecycleScope.launch {
+                if (loginViewModel.login(email, password)) {
+                    // Navigate back to the home screen on successful login
+                    findNavController().popBackStack()
+                    Toast.makeText(requireContext(), "Login Successful!", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), "Invalid email or password", Toast.LENGTH_SHORT).show()
+                }
             }
         }
 
