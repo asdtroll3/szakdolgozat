@@ -30,8 +30,8 @@
 
             <ImageView
                 android:id="@+id/companyLogo"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
                 android:contentDescription="Company Logo"
                 android:src="@mipmap/ic_launcher_foreground" />
 

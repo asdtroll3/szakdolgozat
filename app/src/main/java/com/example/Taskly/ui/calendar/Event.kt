@@ -6,6 +6,7 @@ import java.util.Date
 @Entity
 data class Event(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val ownerEmail: String,
     val title: String,
     val description: String,
     val date: Date,

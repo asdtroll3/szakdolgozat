@@ -9,8 +9,8 @@
 
     <ImageView
         android:id="@+id/registerLogo"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
         android:src="@mipmap/ic_launcher_foreground"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -23,8 +23,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Create Account"
-        android:fontFamily="sans-serif-medium"
-        android:textSize="28sp"
+        android:fontFamily="cursive"
+        android:textSize="48sp"
         android:textColor="?attr/colorOnSurface"
         android:textStyle="bold"
         android:layout_marginTop="16dp"

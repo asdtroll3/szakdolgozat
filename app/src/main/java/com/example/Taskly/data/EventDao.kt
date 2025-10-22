@@ -14,6 +14,6 @@ interface EventDao {
     @Delete
     suspend fun deleteEvent(event: Event)
 
-    @Query("SELECT * FROM Event WHERE date BETWEEN :startDate AND :endDate ORDER BY startTime ASC")
-    suspend fun getEventsByDateRange(startDate: Date, endDate: Date): List<Event>
+    @Query("SELECT * FROM Event WHERE ownerEmail = :ownerEmail AND date BETWEEN :startDate AND :endDate ORDER BY startTime ASC")
+    suspend fun getEventsByDateRange(ownerEmail: String, startDate: Date, endDate: Date): List<Event>
 }

@@ -7,15 +7,19 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.example.Taskly.R
 import com.example.Taskly.databinding.FragmentSettingsBinding
+import com.example.Taskly.ui.login.LoginViewModel
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class SettingsFragment : Fragment() {
 
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
+
+    private val loginViewModel: LoginViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -50,6 +54,22 @@ class SettingsFragment : Fragment() {
             }
         }
         binding.backButton.setOnClickListener {
+            findNavController().popBackStack()
+        }
+        loginViewModel.loggedInUser.observe(viewLifecycleOwner) { user ->
+            if (user != null) {
+                // User is logged in, show the logout button
+                binding.logoutCard.visibility = View.VISIBLE
+            } else {
+                // User is logged out, hide the button
+                binding.logoutCard.visibility = View.GONE
+            }
+        }
+
+        // Handle logout click
+        binding.logoutCard.setOnClickListener {
+            loginViewModel.logout()
+            // Navigate back to the home screen
             findNavController().popBackStack()
         }
     }

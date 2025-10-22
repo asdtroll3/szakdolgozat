@@ -31,6 +31,8 @@ import org.json.JSONObject
 import java.io.IOException
 import java.util.Calendar
 import com.example.Taskly.NotificationScheduler
+import androidx.fragment.app.activityViewModels
+import com.example.Taskly.ui.login.LoginViewModel
 
 class TodayFragment : Fragment() {
 
@@ -46,8 +48,10 @@ class TodayFragment : Fragment() {
 
     private val chatHistory = mutableListOf<ChatMessage>()
     private val client = OkHttpClient()
-    private val apiKey = "AIzaSyCtQ8vKKwdZsmKaesTfTO2l0FJ8CtTYzRQ"
+    private val apiKey = ""
     private val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+
+    private val loginViewModel: LoginViewModel by activityViewModels()
 
     data class ChatMessage(
         val role: String, // "user" or "model"
@@ -145,6 +149,13 @@ class TodayFragment : Fragment() {
     }
 
     private fun loadTodayEvents() {
+        val currentUser = loginViewModel.loggedInUser.value
+        if (currentUser == null) {
+            noEventsTextView.visibility = View.VISIBLE
+            todayEventsRecyclerView.visibility = View.GONE
+            eventAdapter.submitList(emptyList())
+            return
+        }
         lifecycleScope.launch {
             try {
                 // Get the start and end of the current day
@@ -160,7 +171,11 @@ class TodayFragment : Fragment() {
                 }
 
                 // Query the database for events within today's range
-                val events = App.database.eventDao().getEventsByDateRange(startOfDay.time, endOfDay.time)
+                val events = App.database.eventDao().getEventsByDateRange(
+                    currentUser.email,
+                    startOfDay.time,
+                    endOfDay.time
+                )
 
                 // Update the UI on the main thread
                 withContext(Dispatchers.Main) {

@@ -40,6 +40,8 @@ import java.time.YearMonth
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
+import androidx.fragment.app.activityViewModels
+import com.example.Taskly.ui.login.LoginViewModel
 
 class CalendarFragment : Fragment() {
     private var _binding: FragmentCalendarBinding? = null
@@ -58,7 +60,7 @@ class CalendarFragment : Fragment() {
     private lateinit var chatScrollView: ScrollView
     private val chatHistory = mutableListOf<ChatMessage>()
     private val client = OkHttpClient()
-    private val apiKey = "AIzaSyCtQ8vKKwdZsmKaesTfTO2l0FJ8CtTYzRQ"
+    private val apiKey = ""
     private val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
     data class ChatMessage(
@@ -66,6 +68,7 @@ class CalendarFragment : Fragment() {
         val content: String
     )
 
+    private val loginViewModel: LoginViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -424,6 +427,12 @@ class CalendarFragment : Fragment() {
                 val title = titleEdit.text.toString().trim()
                 val description = descEdit.text.toString().trim()
 
+                val currentUser = loginViewModel.loggedInUser.value
+                if (currentUser == null) {
+                    Toast.makeText(requireContext(), "You must be logged in to add an event", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
                 if (title.isEmpty()) {
                     titleEdit.error = "Title cannot be empty"
                     return@setOnClickListener
@@ -460,6 +469,7 @@ class CalendarFragment : Fragment() {
                 // Ensure end time is after start time
                 if (endTime.after(startTime)) {
                     addNewEvent(
+                        currentUser.email,
                         title,
                         description,
                         startTime.time,
@@ -479,8 +489,9 @@ class CalendarFragment : Fragment() {
         dialog.show()
     }
 
-    private fun addNewEvent(title: String, description: String, startTime: Date, endTime: Date, date: Date) {
+    private fun addNewEvent(ownerEmail: String, title: String, description: String, startTime: Date, endTime: Date, date: Date) {
         val event = Event(
+            ownerEmail = ownerEmail,
             title = title,
             description = description,
             date = date,
@@ -548,6 +559,15 @@ class CalendarFragment : Fragment() {
     }
 
     private fun updateEventsForDate(selectedDate: LocalDate) {
+        val currentUser = loginViewModel.loggedInUser.value
+        if (currentUser == null) {
+            eventAdapter.submitList(emptyList())
+            binding.noEventsText.visibility = View.VISIBLE
+            binding.eventsRecyclerView.visibility = View.GONE
+            binding.aiChatContainer.visibility = View.VISIBLE
+            binding.eventsTitle.visibility = View.GONE
+            return
+        }
         lifecycleScope.launch {
             try {
                 // Convert LocalDate to Calendar and set to start of the day
@@ -561,7 +581,11 @@ class CalendarFragment : Fragment() {
                 }
 
                 // Use the new query to get events within the date range
-                val events = App.database.eventDao().getEventsByDateRange(startOfDay.time, endOfDay.time)
+                val events = App.database.eventDao().getEventsByDateRange(
+                    currentUser.email,
+                    startOfDay.time,
+                    endOfDay.time
+                )
                 if (events.isEmpty()) {
                     binding.eventsRecyclerView.visibility = View.GONE
                     binding.aiChatContainer.visibility = View.VISIBLE
