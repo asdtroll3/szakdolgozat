@@ -30,6 +30,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.util.Calendar
+import com.example.Taskly.NotificationScheduler
 
 class TodayFragment : Fragment() {
 
@@ -45,7 +46,7 @@ class TodayFragment : Fragment() {
 
     private val chatHistory = mutableListOf<ChatMessage>()
     private val client = OkHttpClient()
-    private val apiKey = ""
+    private val apiKey = "AIzaSyCtQ8vKKwdZsmKaesTfTO2l0FJ8CtTYzRQ"
     private val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
     data class ChatMessage(
@@ -132,6 +133,7 @@ class TodayFragment : Fragment() {
     private fun deleteEvent(event: Event) {
         lifecycleScope.launch {
             try {
+                NotificationScheduler.cancelNotification(requireContext(), event)
                 App.database.eventDao().deleteEvent(event)
                 Toast.makeText(requireContext(), "Event deleted", Toast.LENGTH_SHORT).show()
                 loadTodayEvents() // Refresh the list

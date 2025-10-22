@@ -17,6 +17,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import com.example.Taskly.R
+import com.example.Taskly.NotificationScheduler
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.*
@@ -45,7 +46,6 @@ class CalendarFragment : Fragment() {
     private var selectedDate: LocalDate = LocalDate.now()
     private val binding get() = _binding!!
     private lateinit var eventAdapter: EventAdapter
-    private val eventsByDate: MutableMap<String, MutableList<Event>> = mutableMapOf()
 
     // Store selected start and end times
     private var startCalendar: Calendar = Calendar.getInstance()
@@ -58,7 +58,7 @@ class CalendarFragment : Fragment() {
     private lateinit var chatScrollView: ScrollView
     private val chatHistory = mutableListOf<ChatMessage>()
     private val client = OkHttpClient()
-    private val apiKey = ""
+    private val apiKey = "AIzaSyCtQ8vKKwdZsmKaesTfTO2l0FJ8CtTYzRQ"
     private val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
     data class ChatMessage(
@@ -392,8 +392,9 @@ class CalendarFragment : Fragment() {
 
         // Set initial times
         startCalendar.time = Date()
-        endCalendar.time = Date()
-        endCalendar.add(Calendar.HOUR_OF_DAY, 1) // Default to one hour later
+        startCalendar.add(Calendar.HOUR_OF_DAY, 1)
+        endCalendar.time = startCalendar.time
+        endCalendar.add(Calendar.HOUR_OF_DAY, 1)
 
         startTimeEdit.setText(timeFormat.format(startCalendar.time))
         endTimeEdit.setText(timeFormat.format(endCalendar.time))
@@ -490,7 +491,12 @@ class CalendarFragment : Fragment() {
 
         lifecycleScope.launch {
             try {
-                App.database.eventDao().insertEvent(event)
+                val newId = App.database.eventDao().insertEvent(event)
+                val newEvent = event.copy(id = newId.toInt()) // Create event object with the new ID
+
+                // Schedule the notification
+                NotificationScheduler.scheduleNotification(requireContext(), newEvent)
+
                 loadEventsForSelectedDate()
                 Toast.makeText(
                     requireContext(),
@@ -525,6 +531,7 @@ class CalendarFragment : Fragment() {
     private fun deleteEvent(event: Event) {
         lifecycleScope.launch {
             try {
+                NotificationScheduler.cancelNotification(requireContext(), event)
                 App.database.eventDao().deleteEvent(event)
                 Toast.makeText(requireContext(), "Event deleted", Toast.LENGTH_SHORT).show()
                 loadEventsForSelectedDate() // Refresh the list
@@ -538,14 +545,6 @@ class CalendarFragment : Fragment() {
 
     private fun loadEventsForSelectedDate() {
         updateEventsForDate(selectedDate)
-    }
-
-    private fun formatDate(date: LocalDate): String {
-        val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val calendar = Calendar.getInstance().apply {
-            set(date.year, date.monthValue - 1, date.dayOfMonth)
-        }
-        return formatter.format(calendar.time)
     }
 
     private fun updateEventsForDate(selectedDate: LocalDate) {

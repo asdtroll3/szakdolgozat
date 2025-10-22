@@ -6,7 +6,7 @@ import java.util.Date
 @Dao
 interface EventDao {
     @Insert
-    suspend fun insertEvent(event: Event)
+    suspend fun insertEvent(event: Event): Long
 
     @Update
     suspend fun updateEvent(event: Event)
