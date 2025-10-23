@@ -109,6 +109,20 @@ class MailViewModel : ViewModel() {
             }
         }
     }
+    fun deleteMail(mail: Mail) {
+        viewModelScope.launch {
+            try {
+                // Instead of deleting, we just mark it as deleted
+                mailDao.markAsDeletedByRecipient(mail.id)
+
+                // Now, just refresh the inbox. The sent list is unaffected.
+                loadInbox(mail.recipientEmail)
+
+            } catch (e: Exception) {
+                // Handle any errors, e.g., show a toast via a LiveData event
+            }
+        }
+    }
 
     fun clearMail() {
         _inbox.value = emptyList()

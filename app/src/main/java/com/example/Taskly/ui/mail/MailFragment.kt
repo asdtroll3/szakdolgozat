@@ -8,10 +8,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.appcompat.app.AlertDialog // <-- CHANGE: Import the correct AlertDialog
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.Taskly.R
 import com.example.Taskly.databinding.DialogComposeMailBinding
 import com.example.Taskly.databinding.DialogMailOptionsBinding
@@ -55,6 +57,7 @@ class MailFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
+        // This is your original code to set up the adapter
         mailAdapter = MailAdapter(
             onMailClick = { mail ->
                 // Check if we are in the "Inbox" tab (position 0)
@@ -71,6 +74,62 @@ class MailFragment : Fragment() {
             layoutManager = LinearLayoutManager(context)
             adapter = mailAdapter
         }
+
+        // --- MODIFIED SWIPE-TO-DELETE LOGIC ---
+        val itemTouchCallback = object : ItemTouchHelper.SimpleCallback(
+            0, // We don't support drag & drop
+            ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT // Default swipe directions
+        ) {
+            override fun getSwipeDirs(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder
+            ): Int {
+                // Check the current tab position
+                // 0 = Inbox, 1 = Sent
+                if (currentTabPosition == 1) {
+                    return 0 // Return 0 to disable swiping
+                }
+                // Otherwise, allow swiping
+                return super.getSwipeDirs(recyclerView, viewHolder)
+            }
+
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                return false // Not used
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                // This code will now ONLY run if we are on the "Inbox" tab
+                // because getSwipeDirs() disabled it for the "Sent" tab.
+
+                val position = viewHolder.adapterPosition
+                val mail = mailAdapter.currentList[position]
+
+                // Show a confirmation dialog
+                MaterialAlertDialogBuilder(requireContext(), R.style.DeleteDialogTheme)
+                    .setTitle("Delete Mail")
+                    .setMessage("Are you sure you want to delete this mail?")
+                    .setNegativeButton("Cancel") { dialog, _ ->
+                        // User cancelled, notify adapter to refresh the item
+                        mailAdapter.notifyItemChanged(position)
+                        dialog.dismiss()
+                    }
+                    .setPositiveButton("Delete") { dialog, _ ->
+                        // User confirmed, call the ViewModel to delete
+                        mailViewModel.deleteMail(mail)
+                        Toast.makeText(requireContext(), "Mail deleted", Toast.LENGTH_SHORT).show()
+                        dialog.dismiss()
+                    }
+                    .setCancelable(false) // Prevent dismissing on outside touch
+                    .show()
+            }
+        }
+
+        // Attach the callback to the RecyclerView
+        ItemTouchHelper(itemTouchCallback).attachToRecyclerView(binding.mailRecyclerView)
     }
 
     private fun setupTabs() {

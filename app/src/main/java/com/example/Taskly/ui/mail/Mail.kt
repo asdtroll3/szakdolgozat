@@ -11,5 +11,6 @@ data class Mail(
     val recipientEmail: String,
     val subject: String,
     val body: String,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val isDeletedByRecipient: Boolean = false
 )

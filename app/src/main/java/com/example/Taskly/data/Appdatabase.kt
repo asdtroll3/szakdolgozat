@@ -8,7 +8,7 @@ import com.example.Taskly.ui.login.User
 import com.example.Taskly.ui.mail.Mail
 import com.example.Taskly.ui.mail.MailDao
 
-@Database(entities = [Event::class, User::class, Mail::class], version = 6, exportSchema = false)
+@Database(entities = [Event::class, User::class, Mail::class], version = 7, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun eventDao(): EventDao
