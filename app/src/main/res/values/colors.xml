@@ -8,4 +8,8 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="light_silver">#EEEEEE</color>
+    <color name="delete_red">#D32F2F</color>
+    <color name="night_dialog_background">#353535</color>
+    <color name="night_dialog_title">#e5e5e5</color>
+    <color name="night_dialog_body">#505050</color>
 </resources>

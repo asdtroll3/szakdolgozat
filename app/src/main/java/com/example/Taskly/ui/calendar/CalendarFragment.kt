@@ -485,6 +485,8 @@ class CalendarFragment : Fragment() {
                     ).show()
                 }
             }
+            val cancelButton = dialog.getButton(DialogInterface.BUTTON_NEGATIVE)
+            cancelButton.setTextColor(requireContext().getColor(android.R.color.darker_gray))
         }
         dialog.show()
     }
@@ -526,7 +528,7 @@ class CalendarFragment : Fragment() {
     }
 
     private fun showDeleteConfirmationDialog(event: Event) {
-        MaterialAlertDialogBuilder(requireContext())
+        MaterialAlertDialogBuilder(requireContext(), R.style.DeleteDialogTheme)
             .setTitle("Delete Event")
             .setMessage("Are you sure you want to delete '${event.title}'?")
             .setNegativeButton("Cancel") { dialog, _ ->

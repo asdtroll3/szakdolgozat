@@ -15,4 +15,16 @@
         <item name="android:navigationBarColor">@color/light_silver</item>
         <!-- Customize your theme here. -->
     </style>
+
+    <style name="DeleteDialogTheme" parent="Theme.MaterialComponents.Light.Dialog.Alert">
+        <item name="buttonBarPositiveButtonStyle">@style/DeleteDialogPositiveButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/DeleteDialogNegativeButton</item>
+    </style>
+    <style name="DeleteDialogPositiveButton" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/delete_red</item>
+    </style>
+
+    <style name="DeleteDialogNegativeButton" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@android:color/darker_gray</item>
+    </style>
 </resources>

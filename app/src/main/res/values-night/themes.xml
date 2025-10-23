@@ -13,4 +13,19 @@
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
     </style>
+
+    <style name="DeleteDialogTheme" parent="Theme.MaterialComponents.Light.Dialog.Alert">
+        <item name="buttonBarPositiveButtonStyle">@style/DeleteDialogPositiveButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/DeleteDialogNegativeButton</item>
+        <item name="android:background">@color/night_dialog_background</item>
+        <item name="android:textColorPrimary">@color/night_dialog_title</item>
+        <item name="android:textColorSecondary">@color/night_dialog_body</item>
+    </style>
+    <style name="DeleteDialogPositiveButton" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/delete_red</item>
+    </style>
+
+    <style name="DeleteDialogNegativeButton" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@android:color/darker_gray</item>
+    </style>
 </resources>
