@@ -170,9 +170,37 @@ class MailFragment : Fragment() {
 
             mailBeingProcessed = null // Clear the processed mail
         }
+        mailViewModel.isGeneratingReply.observe(viewLifecycleOwner) { isGenerating ->
+            if (isGenerating) {
+                showLoadingDialog("Generating reply...")
+            } else {
+                dismissLoadingDialog()
+            }
+        }
+
+        mailViewModel.replyResult.observe(viewLifecycleOwner) { reply ->
+            if (reply != null) {
+                val originalSender = mailBeingProcessed?.senderEmail
+                if (originalSender != null) {
+                    // Success! Show the compose dialog with pre-filled data
+                    showComposeDialog(originalSender, reply.subject, reply.body)
+                }
+                mailBeingProcessed = null // Clear
+            }
+        }
+
+        mailViewModel.replyError.observe(viewLifecycleOwner) { error ->
+            if (error != null) {
+                // Show error toast
+                Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
+                mailBeingProcessed = null // Clear
+            }
+        }
     }
 
-    private fun showComposeDialog() {
+    private fun showComposeDialog(recipient: String? = null,
+                                  subject: String? = null,
+                                  body: String? = null) {
         val user = loginViewModel.loggedInUser.value
         if (user == null) {
             Toast.makeText(requireContext(), "You must be logged in to send mail", Toast.LENGTH_SHORT).show()
@@ -180,6 +208,10 @@ class MailFragment : Fragment() {
         }
 
         val dialogBinding = DialogComposeMailBinding.inflate(layoutInflater)
+
+        recipient?.let { dialogBinding.toEmailEdit.setText(it) }
+        subject?.let { dialogBinding.subjectEdit.setText(it) }
+        body?.let { dialogBinding.bodyEdit.setText(it) }
 
         val dialog = MaterialAlertDialogBuilder(requireContext())
             .setView(dialogBinding.root)
@@ -193,6 +225,17 @@ class MailFragment : Fragment() {
                 val recipient = dialogBinding.toEmailEdit.text.toString().trim()
                 val subject = dialogBinding.subjectEdit.text.toString().trim()
                 val body = dialogBinding.bodyEdit.text.toString()
+
+                // --- ADD THIS VALIDATION ---
+                if (recipient.isEmpty()) {
+                    Toast.makeText(requireContext(), "Recipient email cannot be empty.", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                if (subject.isEmpty()) {
+                    Toast.makeText(requireContext(), "Subject cannot be empty.", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                // --- END OF ADDITION ---
 
                 // Observe sendMailStatus for this specific send action
                 val statusObserver = object : Observer<String?> {
@@ -241,8 +284,8 @@ class MailFragment : Fragment() {
         }
 
         dialogBinding.buttonReplyAi.setOnClickListener {
-            Toast.makeText(requireContext(), "Reply with AI clicked (not implemented)", Toast.LENGTH_SHORT).show()
-            // TODO: Implement AI Reply functionality
+            mailBeingProcessed = mail // Store the mail
+            mailViewModel.generateReply(mail) // Call the new function
             dialog.dismiss()
         }
 

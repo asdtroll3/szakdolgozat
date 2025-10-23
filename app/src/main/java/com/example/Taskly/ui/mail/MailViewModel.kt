@@ -16,6 +16,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 
+data class AiReply(val subject: String, val body: String)
 class MailViewModel : ViewModel() {
 
     private val mailDao = App.database.mailDao()
@@ -42,6 +43,15 @@ class MailViewModel : ViewModel() {
 
     private val _summaryResult = MutableLiveData<String>()
     val summaryResult: LiveData<String> = _summaryResult
+
+    private val _isGeneratingReply = MutableLiveData<Boolean>()
+    val isGeneratingReply: LiveData<Boolean> = _isGeneratingReply
+
+    private val _replyResult = MutableLiveData<AiReply?>()
+    val replyResult: LiveData<AiReply?> = _replyResult
+
+    private val _replyError = MutableLiveData<String?>()
+    val replyError: LiveData<String?> = _replyError
     // --- End of new additions ---
 
 
@@ -69,14 +79,6 @@ class MailViewModel : ViewModel() {
 
     fun sendMail(senderEmail: String, recipientEmail: String, subject: String, body: String) {
         viewModelScope.launch {
-            if (recipientEmail.isEmpty()) {
-                _sendMailStatus.postValue("Recipient email cannot be empty.")
-                return@launch
-            }
-            if (subject.isEmpty()) {
-                _sendMailStatus.postValue("Subject cannot be empty.")
-                return@launch
-            }
 
             // Check if recipient user exists
             val recipientExists = userDao.findUserByEmail(recipientEmail)
@@ -99,6 +101,9 @@ class MailViewModel : ViewModel() {
 
                 // Refresh sent items
                 loadSentItems(senderEmail)
+                if (senderEmail.equals(recipientEmail, ignoreCase = true)) {
+                    loadInbox(senderEmail)
+                }
             } catch (e: Exception) {
                 _sendMailStatus.postValue("An error occurred while sending: ${e.message}")
             }
@@ -119,6 +124,58 @@ class MailViewModel : ViewModel() {
             val result = makeGeminiApiCall(prompt)
             _summaryResult.postValue(result ?: "Error: No response from AI.")
             _isSummarizing.postValue(false)
+        }
+    }
+    fun generateReply(mail: Mail) {
+        _isGeneratingReply.postValue(true)
+        _replyError.postValue(null) // Clear previous errors
+        _replyResult.postValue(null) // Clear previous results
+
+        viewModelScope.launch(Dispatchers.IO) {
+            // Create a prompt asking for a JSON response
+            val prompt = """
+                Generate a professional reply to the following email:
+                
+                From: ${mail.senderEmail}
+                Subject: ${mail.subject}
+                Body:
+                ${mail.body}
+                
+                Please provide the reply in the following JSON format:
+                {
+                  "subject": "RE: ${mail.subject.replace("\"", "\\\"")}",
+                  "body": "[Your generated reply body]"
+                }
+            """.trimIndent()
+
+            val result = makeGeminiApiCall(prompt) // Re-use the existing API call function
+
+            if (result == null || result.startsWith("Error:") || result.startsWith("Network error:") || result.startsWith("API Error:") || result.startsWith("Blocked due to")) {
+                _replyError.postValue(result ?: "Error: No response from AI.")
+            } else {
+                // Parse the JSON
+                try {
+                    // --- THIS IS THE FIX ---
+                    // Clean the string to remove markdown backticks
+                    var jsonString = result.trim()
+                    if (jsonString.startsWith("```json")) {
+                        // Remove ```json at the start and ``` at the end
+                        jsonString = jsonString.substring(7, jsonString.length - 3).trim()
+                    } else if (jsonString.startsWith("```")) {
+                        // Remove ``` at the start and ``` at the end
+                        jsonString = jsonString.substring(3, jsonString.length - 3).trim()
+                    }
+                    // --- END OF FIX ---
+
+                    val jsonResponse = JSONObject(jsonString) // Parse the cleaned string
+                    val subject = jsonResponse.getString("subject")
+                    val body = jsonResponse.getString("body")
+                    _replyResult.postValue(AiReply(subject, body))
+                } catch (e: Exception) {
+                    _replyError.postValue("Error parsing AI reply. Raw: $result")
+                }
+            }
+            _isGeneratingReply.postValue(false)
         }
     }
 

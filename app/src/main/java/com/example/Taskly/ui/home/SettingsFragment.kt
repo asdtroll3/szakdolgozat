@@ -33,9 +33,8 @@ class SettingsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        view.post {
-            activity?.findViewById<BottomNavigationView>(R.id.nav_view)?.visibility = View.GONE
-        }
+        val navBar = activity?.findViewById<BottomNavigationView>(R.id.nav_view)
+        navBar?.visibility = View.GONE
 
         val darkModeSwitch = binding.darkModeSwitch
 
