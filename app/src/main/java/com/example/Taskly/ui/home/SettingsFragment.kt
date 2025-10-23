@@ -1,6 +1,5 @@
 package com.example.Taskly.ui.settings
 
-import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -9,6 +8,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
+import com.example.Taskly.App
 import com.example.Taskly.R
 import com.example.Taskly.databinding.FragmentSettingsBinding
 import com.example.Taskly.ui.login.LoginViewModel
@@ -38,7 +38,10 @@ class SettingsFragment : Fragment() {
         }
 
         val darkModeSwitch = binding.darkModeSwitch
-        val sharedPreferences = requireActivity().getSharedPreferences("settings", Context.MODE_PRIVATE)
+
+        // --- Use the global App.sharedPreferences ---
+        val sharedPreferences = App.sharedPreferences
+        // ------------------------------------------
 
         // Set the switch to the current saved state
         val isDarkMode = sharedPreferences.getBoolean("dark_mode", false)

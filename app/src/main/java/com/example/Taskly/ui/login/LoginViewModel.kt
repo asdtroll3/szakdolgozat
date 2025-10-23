@@ -13,12 +13,33 @@ class LoginViewModel : ViewModel() {
 
     private val userDao = App.database.userDao()
 
+    // --- Add a companion object for the preference key ---
+    companion object {
+        private const val PREF_LOGGED_IN_EMAIL = "logged_in_email"
+    }
+    // -----------------------------------------------------
+
     // LiveData holds the logged-in user
     private val _loggedInUser = MutableLiveData<User?>(null)
     val loggedInUser: LiveData<User?> = _loggedInUser
 
     init {
+        // --- Add this logic to auto-login ---
         viewModelScope.launch(Dispatchers.IO) {
+            // Check for a saved user in preferences
+            val savedEmail = App.sharedPreferences.getString(PREF_LOGGED_IN_EMAIL, null)
+            if (!savedEmail.isNullOrBlank()) {
+                val user = userDao.findUserByEmail(savedEmail)
+                if (user != null) {
+                    _loggedInUser.postValue(user)
+                } else {
+                    // User was in prefs but not DB? Clear prefs.
+                    App.sharedPreferences.edit().remove(PREF_LOGGED_IN_EMAIL).apply()
+                }
+            }
+            // ------------------------------------
+
+            // This part remains the same
             val admin = userDao.findUserByEmail("admin@admin.com")
             if (admin == null) {
                 try {
@@ -40,6 +61,11 @@ class LoginViewModel : ViewModel() {
 
         return if (user != null) {
             _loggedInUser.postValue(user)
+            // --- Save the logged-in user's email ---
+            App.sharedPreferences.edit()
+                .putString(PREF_LOGGED_IN_EMAIL, user.email)
+                .apply()
+            // ----------------------------------------
             true
         } else {
             false
@@ -89,6 +115,11 @@ class LoginViewModel : ViewModel() {
      * Logs out the current user.
      */
     fun logout() {
+        // --- Clear the saved user from preferences ---
+        App.sharedPreferences.edit()
+            .remove(PREF_LOGGED_IN_EMAIL)
+            .apply()
+        // -------------------------------------------
         _loggedInUser.value = null
     }
 }
