@@ -1,19 +1,24 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
     <style name="Theme.Taskly" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Primary brand color. -->
+
         <item name="colorPrimary">@color/teal_1</item>
         <item name="colorPrimaryVariant">@color/teal_1</item>
         <item name="colorOnPrimary">@color/white</item>
-        <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/teal_2</item>
+
+        <item name="colorSecondary">#80CBC4</item>
         <item name="colorSecondaryVariant">@color/white</item>
         <item name="colorOnSecondary">@color/black</item>
-        <!-- Status bar color. -->
-        <item name="android:statusBarColor">@color/white</item>
+
+        <item name="android:statusBarColor">@color/background_color</item>
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:navigationBarColor">@color/light_silver</item>
-        <!-- Customize your theme here. -->
+        <item name="android:navigationBarColor">@color/background_color</item>
+        <item name="android:windowBackground">@color/background_color</item>
+        <item name="colorSurface">@color/background_color</item>
+        <item name="materialCardViewStyle">@style/Widget.App.CardView</item>
+
+    </style>
+    <style name="Widget.App.CardView" parent="Widget.MaterialComponents.CardView">
+        <item name="cardBackgroundColor">@color/white</item>
     </style>
 
     <style name="DeleteDialogTheme" parent="Theme.MaterialComponents.Light.Dialog.Alert">
