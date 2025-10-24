@@ -6,12 +6,14 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.Taskly.App
+import com.example.Taskly.ui.projects.Project
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class LoginViewModel : ViewModel() {
 
     private val userDao = App.database.userDao()
+    private val projectDao = App.database.projectDao()
 
     // --- Add a companion object for the preference key ---
     companion object {
@@ -45,6 +47,8 @@ class LoginViewModel : ViewModel() {
                 try {
                     // Fixed parameter order: email, username, password
                     userDao.insertUser(User("admin@admin.com", "admin", "admin"))
+                    val adminHome = Project(ownerEmail = "admin@admin.com", name = "Home", iconName = "ic_home_project")
+                    projectDao.insert(adminHome)
                 } catch (e: SQLiteConstraintException) {
                     println("Admin insertion failed: ${e.message}")
                 }
@@ -105,6 +109,8 @@ class LoginViewModel : ViewModel() {
         val newUser = User(email, username, pass)
         return try {
             userDao.insertUser(newUser)
+            val defaultProject = Project(ownerEmail = email, name = "Home", iconName = "ic_home_project")
+            projectDao.insert(defaultProject)
             null
         } catch (e: SQLiteConstraintException) {
             "An error occurred: Email already exists"

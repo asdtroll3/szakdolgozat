@@ -11,9 +11,11 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.content.DialogInterface
 import android.util.Log
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ScrollView
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import com.example.Taskly.R
@@ -42,6 +44,7 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import androidx.fragment.app.activityViewModels
 import com.example.Taskly.ui.login.LoginViewModel
+import com.example.Taskly.ui.projects.Project
 
 class CalendarFragment : Fragment() {
     private var _binding: FragmentCalendarBinding? = null
@@ -69,6 +72,7 @@ class CalendarFragment : Fragment() {
     )
 
     private val loginViewModel: LoginViewModel by activityViewModels()
+    private var userProjects: List<Project> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -89,6 +93,17 @@ class CalendarFragment : Fragment() {
         initializeChatViews(view)
         setupChatListeners()
 
+        loginViewModel.loggedInUser.observe(viewLifecycleOwner) { user ->
+            if (user != null) {
+                fetchUserProjects(user.email)
+                // Load events (in case user just logged in)
+                loadEventsForSelectedDate()
+            } else {
+                userProjects = emptyList()
+                // Clear events (in case user just logged out)
+                loadEventsForSelectedDate()
+            }
+        }
 
         val currentMonth = YearMonth.now()
         val title = "${currentMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${currentMonth.year}"
@@ -97,6 +112,16 @@ class CalendarFragment : Fragment() {
         binding.calendarView.monthScrollListener = { month ->
             val title = "${month.yearMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${month.yearMonth.year}"
             binding.monthYearText.text = title
+        }
+    }
+    private fun fetchUserProjects(email: String) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                userProjects = App.database.projectDao().getProjectsForUserList(email)
+            } catch (e: Exception) {
+                Log.e("CalendarFragment", "Error fetching projects", e)
+                userProjects = emptyList()
+            }
         }
     }
 
@@ -326,6 +351,7 @@ class CalendarFragment : Fragment() {
 
     private fun setupRecyclerView() {
         eventAdapter = EventAdapter(
+            showDate = false,
             onEventCheckedChange = { event, isChecked ->
                 // ... (this logic is unchanged)
                 event.isCompleted = isChecked
@@ -397,7 +423,19 @@ class CalendarFragment : Fragment() {
         val descEdit = dialogView.findViewById<EditText>(R.id.eventDescriptionEdit)
         val startTimeEdit = dialogView.findViewById<TextInputEditText>(R.id.startTimeEdit)
         val endTimeEdit = dialogView.findViewById<TextInputEditText>(R.id.endTimeEdit)
+        val projectSpinner = dialogView.findViewById<Spinner>(R.id.projectSpinner)
         val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+
+        val projectNames = mutableListOf("No Project")
+        projectNames.addAll(userProjects.map { it.name })
+
+        val spinnerAdapter = ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_spinner_item,
+            projectNames
+        )
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        projectSpinner.adapter = spinnerAdapter
 
         // Determine mode (Add vs. Edit)
         val isEditMode = eventToEdit != null
@@ -417,12 +455,16 @@ class CalendarFragment : Fragment() {
             descEdit.setText(eventToEdit.description)
             startCalendar.time = eventToEdit.startTime
             endCalendar.time = eventToEdit.endTime
+            val projectIndex = userProjects.indexOfFirst { it.id == eventToEdit.projectId }
+            // Add 1 because "No Project" is at index 0
+            projectSpinner.setSelection(if (projectIndex != -1) projectIndex + 1 else 0)
         } else {
             // Add Mode: Set default times for a new event
             startCalendar.time = Date()
             startCalendar.add(Calendar.HOUR_OF_DAY, 1)
             endCalendar.time = startCalendar.time
             endCalendar.add(Calendar.HOUR_OF_DAY, 1)
+            projectSpinner.setSelection(0)
         }
 
         // Set time text fields
@@ -465,6 +507,13 @@ class CalendarFragment : Fragment() {
                     titleEdit.error = "Title cannot be empty"
                     return@setOnClickListener
                 }
+                val selectedSpinnerPosition = projectSpinner.selectedItemPosition
+                val selectedProjectId: Int? = if (selectedSpinnerPosition == 0) {
+                    null // "No Project" selected
+                } else {
+                    // Subtract 1 to account for "No Project" at index 0
+                    userProjects[selectedSpinnerPosition - 1].id
+                }
 
                 // --- MODIFIED SAVE LOGIC ---
                 // Set start time using the currently selected date
@@ -505,7 +554,8 @@ class CalendarFragment : Fragment() {
                             description = description,
                             date = selectedDateCalendar.time, // Update date in case user edited an event from another day
                             startTime = startTime.time,
-                            endTime = endTime.time
+                            endTime = endTime.time,
+                            projectId = selectedProjectId
                         )
                         updateEvent(updatedEvent)
                     } else {
@@ -516,7 +566,8 @@ class CalendarFragment : Fragment() {
                             description,
                             startTime.time,
                             endTime.time,
-                            selectedDateCalendar.time
+                            selectedDateCalendar.time,
+                            selectedProjectId
                         )
                     }
                     dialog.dismiss()
@@ -534,7 +585,7 @@ class CalendarFragment : Fragment() {
         dialog.show()
     }
 
-    private fun addNewEvent(ownerEmail: String, title: String, description: String, startTime: Date, endTime: Date, date: Date) {
+    private fun addNewEvent(ownerEmail: String, title: String, description: String, startTime: Date, endTime: Date, date: Date, projectId: Int?) {
         val event = Event(
             ownerEmail = ownerEmail,
             title = title,
@@ -542,7 +593,8 @@ class CalendarFragment : Fragment() {
             date = date,
             startTime = startTime,
             endTime = endTime,
-            isCompleted = false
+            isCompleted = false,
+            projectId = projectId
         )
 
         lifecycleScope.launch {

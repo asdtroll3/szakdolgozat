@@ -16,6 +16,25 @@
         <action
             android:id="@+id/action_navigation_home_to_settingsFragment"
             app:destination="@id/navigation_settings" />
+        <action
+            android:id="@+id/action_navigation_home_to_projectDetailsFragment"
+            app:destination="@id/projectDetailsFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/projectDetailsFragment"
+        android:name="com.example.Taskly.ui.projects.ProjectDetailsFragment"
+        android:label="Project Details"
+        tools:layout="@layout/fragment_project_details">
+        <argument
+            android:name="projectId"
+            app:argType="integer" />
+        <argument
+            android:name="projectName"
+            app:argType="string" />
+        <argument
+            android:name="projectIconName"
+            app:argType="string" />
     </fragment>
 
     <fragment

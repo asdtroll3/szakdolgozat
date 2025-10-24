@@ -16,6 +16,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import android.app.TimePickerDialog
+import android.content.DialogInterface
+import android.widget.ArrayAdapter
+import android.widget.Spinner
 import java.text.SimpleDateFormat
 import com.example.Taskly.App
 import com.example.Taskly.R
@@ -35,6 +38,7 @@ import java.util.Calendar
 import com.example.Taskly.NotificationScheduler
 import androidx.fragment.app.activityViewModels
 import com.example.Taskly.ui.login.LoginViewModel
+import com.example.Taskly.ui.projects.Project
 import com.google.android.material.textfield.TextInputEditText
 import java.util.Locale
 
@@ -56,6 +60,7 @@ class TodayFragment : Fragment() {
     private val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
     private val loginViewModel: LoginViewModel by activityViewModels()
+    private var userProjects: List<Project> = emptyList()
 
     data class ChatMessage(
         val role: String, // "user" or "model"
@@ -76,6 +81,24 @@ class TodayFragment : Fragment() {
         initializeViews(view)
         setupClickListeners()
         setupRecyclerView()
+
+        loginViewModel.loggedInUser.observe(viewLifecycleOwner) { user ->
+            if (user != null) {
+                fetchUserProjects(user.email)
+            } else {
+                userProjects = emptyList()
+            }
+        }
+    }
+    private fun fetchUserProjects(email: String) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                userProjects = App.database.projectDao().getProjectsForUserList(email)
+            } catch (e: Exception) {
+                Log.e("TodayFragment", "Error fetching projects", e)
+                userProjects = emptyList()
+            }
+        }
     }
 
     override fun onResume() {
@@ -98,6 +121,7 @@ class TodayFragment : Fragment() {
     private fun setupRecyclerView() {
         // Reuse the existing EventAdapter
         eventAdapter = EventAdapter(
+            showDate = false,
             onEventCheckedChange = { event, isChecked ->
                 // ... (this logic is unchanged)
                 event.isCompleted = isChecked
@@ -372,9 +396,19 @@ class TodayFragment : Fragment() {
         val descEdit = dialogView.findViewById<EditText>(R.id.eventDescriptionEdit)
         val startTimeEdit = dialogView.findViewById<TextInputEditText>(R.id.startTimeEdit)
         val endTimeEdit = dialogView.findViewById<TextInputEditText>(R.id.endTimeEdit)
+        val projectSpinner = dialogView.findViewById<Spinner>(R.id.projectSpinner)
         val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
         dialogHeader.text = "Edit Event"
 
+        val projectNames = mutableListOf("No Project")
+        projectNames.addAll(userProjects.map { it.name })
+        val spinnerAdapter = ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_spinner_item,
+            projectNames
+        )
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        projectSpinner.adapter = spinnerAdapter
         // Create calendars for time pickers
         val startCalendar = Calendar.getInstance().apply { time = eventToEdit.startTime }
         val endCalendar = Calendar.getInstance().apply { time = eventToEdit.endTime }
@@ -384,6 +418,9 @@ class TodayFragment : Fragment() {
         descEdit.setText(eventToEdit.description)
         startTimeEdit.setText(timeFormat.format(startCalendar.time))
         endTimeEdit.setText(timeFormat.format(endCalendar.time))
+
+        val projectIndex = userProjects.indexOfFirst { it.id == eventToEdit.projectId }
+        projectSpinner.setSelection(if (projectIndex != -1) projectIndex + 1 else 0)
 
         // Time picker logic (same as in CalendarFragment)
         startTimeEdit.setOnClickListener {
@@ -406,7 +443,7 @@ class TodayFragment : Fragment() {
             .create()
 
         dialog.setOnShowListener {
-            val saveButton = dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE)
+            val saveButton = dialog.getButton(DialogInterface.BUTTON_POSITIVE)
             saveButton.setOnClickListener {
                 val title = titleEdit.text.toString().trim()
                 val description = descEdit.text.toString().trim()
@@ -414,6 +451,12 @@ class TodayFragment : Fragment() {
                 if (title.isEmpty()) {
                     titleEdit.error = "Title cannot be empty"
                     return@setOnClickListener
+                }
+                val selectedSpinnerPosition = projectSpinner.selectedItemPosition
+                val selectedProjectId: Int? = if (selectedSpinnerPosition == 0) {
+                    null // "No Project" selected
+                } else {
+                    userProjects[selectedSpinnerPosition - 1].id
                 }
 
                 // Ensure end time is after start time
@@ -424,6 +467,7 @@ class TodayFragment : Fragment() {
                         description = description,
                         startTime = startCalendar.time,
                         endTime = endCalendar.time,
+                        projectId = selectedProjectId
                         // Note: 'date' field from original event is preserved
                     )
 
@@ -452,6 +496,8 @@ class TodayFragment : Fragment() {
                     ).show()
                 }
             }
+            val cancelButton = dialog.getButton(DialogInterface.BUTTON_NEGATIVE)
+            cancelButton.setTextColor(requireContext().getColor(android.R.color.darker_gray))
         }
         dialog.show()
     }

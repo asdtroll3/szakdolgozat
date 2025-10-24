@@ -12,5 +12,6 @@ data class Event(
     val date: Date,
     val startTime: Date,
     val endTime: Date,
-    var isCompleted: Boolean = false
+    var isCompleted: Boolean = false,
+    val projectId: Int? = null
 )

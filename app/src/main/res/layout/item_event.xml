@@ -21,8 +21,8 @@
             android:textColor="?attr/colorOnSurface"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/deleteEventIcon"
-            android:layout_marginEnd="8dp" />
+            app:layout_constraintEnd_toStartOf="@+id/editEventIcon"
+            android:layout_marginEnd="8dp"/>
 
         <TextView
             android:id="@+id/eventDescription"
@@ -33,7 +33,7 @@
             android:textColor="?attr/colorOnSecondary"
             app:layout_constraintTop_toBottomOf="@id/eventTitle"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent"/>
 
         <TextView
             android:id="@+id/eventTime"
@@ -44,8 +44,18 @@
             android:textColor="?attr/colorOnSurface"
             app:layout_constraintTop_toBottomOf="@id/eventDescription"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent"/>
 
+        <TextView
+            android:id="@+id/eventDate"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="12sp"
+            android:textColor="?attr/colorOnSecondary"
+            app:layout_constraintTop_toBottomOf="@id/eventTime"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
         <CheckBox
             android:id="@+id/taskCheckBox"
             android:layout_width="wrap_content"

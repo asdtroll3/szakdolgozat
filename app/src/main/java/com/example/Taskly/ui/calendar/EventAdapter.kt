@@ -1,6 +1,7 @@
 package com.example.Taskly.ui.calendar
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.example.Taskly.databinding.ItemEventBinding
@@ -9,7 +10,8 @@ import java.util.Date
 import java.util.Locale
 
 class EventAdapter(
-    private val onEventCheckedChange: (Event, Boolean) -> Unit, // Callback to handle checkbox state change
+    private val showDate: Boolean,
+    private val onEventCheckedChange: (Event, Boolean) -> Unit,
     private val onEventDeleteClick: (Event) -> Unit,
     private val onEventEditClick: (Event) -> Unit
 ) : RecyclerView.Adapter<EventAdapter.EventViewHolder>() {
@@ -18,6 +20,7 @@ class EventAdapter(
     inner class EventViewHolder(private val binding: ItemEventBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
+        private val eventDateFormat = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
         fun bind(event: Event) {
             binding.eventTitle.text = event.title
             binding.eventDescription.text = event.description
@@ -29,8 +32,13 @@ class EventAdapter(
             // Display times
             binding.eventTime.text = "Starts: $formattedStartTime | Ends: $formattedEndTime"
 
-            // IMPORTANT: Remove the listener before setting the checked state.
-            // This prevents the listener from being fired when the view is recycled.
+            if (showDate) {
+                binding.eventDate.text = eventDateFormat.format(event.date)
+                binding.eventDate.visibility = View.VISIBLE
+            } else {
+                binding.eventDate.visibility = View.GONE
+            }
+
             binding.taskCheckBox.setOnCheckedChangeListener(null)
             binding.taskCheckBox.isChecked = event.isCompleted
 
