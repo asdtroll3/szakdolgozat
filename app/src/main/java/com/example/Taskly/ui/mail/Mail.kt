@@ -2,7 +2,6 @@ package com.example.Taskly.ui.mail
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import java.util.Date
 
 @Entity(tableName = "mail_table")
 data class Mail(
@@ -12,5 +11,6 @@ data class Mail(
     val subject: String,
     val body: String,
     val timestamp: Long = System.currentTimeMillis(),
-    val isDeletedByRecipient: Boolean = false
+    val isDeletedByRecipient: Boolean = false,
+    val isRead: Boolean = false
 )

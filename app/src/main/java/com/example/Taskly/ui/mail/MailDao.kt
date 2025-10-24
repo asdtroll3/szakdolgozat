@@ -16,6 +16,9 @@ interface MailDao {
     @Query("UPDATE mail_table SET isDeletedByRecipient = 1 WHERE id = :mailId")
     suspend fun markAsDeletedByRecipient(mailId: Int)
 
+    @Query("UPDATE mail_table SET isRead = 1 WHERE id = :mailId")
+    suspend fun markAsRead(mailId: Int)
+
     @Query("SELECT * FROM mail_table WHERE recipientEmail = :email COLLATE NOCASE AND isDeletedByRecipient = 0 ORDER BY timestamp DESC")
     suspend fun getInbox(email: String): List<Mail>
 

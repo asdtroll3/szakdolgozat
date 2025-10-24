@@ -10,7 +10,8 @@ import java.util.Locale
 
 class EventAdapter(
     private val onEventCheckedChange: (Event, Boolean) -> Unit, // Callback to handle checkbox state change
-    private val onEventDeleteClick: (Event) -> Unit // Callback for delete icon click
+    private val onEventDeleteClick: (Event) -> Unit,
+    private val onEventEditClick: (Event) -> Unit
 ) : RecyclerView.Adapter<EventAdapter.EventViewHolder>() {
     private var events: List<Event> = emptyList()
 
@@ -41,6 +42,10 @@ class EventAdapter(
             // Set delete click listener
             binding.deleteEventIcon.setOnClickListener {
                 onEventDeleteClick(event)
+            }
+
+            binding.editEventIcon.setOnClickListener {
+                onEventEditClick(event)
             }
         }
 

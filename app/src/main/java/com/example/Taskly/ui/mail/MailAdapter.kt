@@ -1,18 +1,19 @@
 package com.example.Taskly.ui.mail
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.example.Taskly.databinding.ItemMailBinding // This layout will be created next
+import com.example.Taskly.databinding.ItemMailBinding
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 class MailAdapter(
     private val onMailClick: (Mail) -> Unit,
-    private val isSentbox: () -> Boolean // Function to check if we are showing sent items
+    private val isSentbox: () -> Boolean
 ) : ListAdapter<Mail, MailAdapter.MailViewHolder>(MailDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MailViewHolder {
@@ -38,8 +39,14 @@ class MailAdapter(
 
             if (isSentbox()) {
                 binding.mailFromOrTo.text = "To: ${mail.recipientEmail}"
+                binding.unreadDot.visibility = View.GONE
             } else {
                 binding.mailFromOrTo.text = "From: ${mail.senderEmail}"
+                if (mail.isRead) {
+                    binding.unreadDot.visibility = View.GONE
+                } else {
+                    binding.unreadDot.visibility = View.VISIBLE
+                }
             }
 
             binding.mailTimestamp.text = dateFormat.format(Date(mail.timestamp))

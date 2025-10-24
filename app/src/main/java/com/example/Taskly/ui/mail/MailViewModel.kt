@@ -109,6 +109,32 @@ class MailViewModel : ViewModel() {
             }
         }
     }
+    fun markMailAsRead(mail: Mail) {
+        // Only mark as read if it's not already read and it's an inbox mail
+        // We check the recipient email against the logged-in user's email
+        val currentUserEmail = App.sharedPreferences.getString("logged_in_email", null)
+        if (!mail.isRead && mail.recipientEmail.equals(currentUserEmail, ignoreCase = true)) {
+            viewModelScope.launch {
+                try {
+                    mailDao.markAsRead(mail.id)
+                    // Manually update the LiveData list to show the change instantly
+                    _inbox.value?.let { currentInbox ->
+                        val updatedList = currentInbox.map {
+                            if (it.id == mail.id) {
+                                it.copy(isRead = true) // Return a new Mail object with isRead = true
+                            } else {
+                                it
+                            }
+                        }
+                        _inbox.postValue(updatedList)
+                    }
+
+                } catch (e: Exception) {
+                    // Handle error, maybe log it
+                }
+            }
+        }
+    }
     fun deleteMail(mail: Mail) {
         viewModelScope.launch {
             try {

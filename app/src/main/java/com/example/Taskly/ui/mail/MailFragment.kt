@@ -150,9 +150,7 @@ class MailFragment : Fragment() {
             mailViewModel.sent.value
         }
         mailAdapter.submitList(mails)
-        if (mails.isNullOrEmpty()) {
-            // Can show a "no mail" text here if needed
-        }
+
         binding.mailRecyclerView.scrollToPosition(0) // Scroll to top
     }
 
@@ -327,8 +325,7 @@ class MailFragment : Fragment() {
         // Inflate the custom layout
         val dialogBinding = DialogMailOptionsBinding.inflate(layoutInflater)
 
-        // Set the mail subject as the title
-        dialogBinding.mailOptionsTitle.text = mail.subject.ifEmpty { "(No Subject)" }
+        dialogBinding.mailOptionsTitle.text = "Subject: ${mail.subject.ifEmpty { "(No Subject)" }}"
 
         // Create the dialog
         val dialog = MaterialAlertDialogBuilder(requireContext())
@@ -338,17 +335,20 @@ class MailFragment : Fragment() {
 
         // Set click listeners for the buttons
         dialogBinding.buttonRead.setOnClickListener {
+            mailViewModel.markMailAsRead(mail)
             showMailDetailsDialog(mail)
             dialog.dismiss()
         }
 
         dialogBinding.buttonReplyAi.setOnClickListener {
+            mailViewModel.markMailAsRead(mail)
             mailBeingProcessed = mail // Store the mail
             mailViewModel.generateReply(mail) // Call the new function
             dialog.dismiss()
         }
 
         dialogBinding.buttonSummarize.setOnClickListener {
+            mailViewModel.markMailAsRead(mail)
             mailBeingProcessed = mail // Store the mail
             mailViewModel.summarizeMail(mail.body) // Start the API call
             dialog.dismiss()

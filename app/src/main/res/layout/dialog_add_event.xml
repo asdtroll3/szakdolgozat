@@ -7,9 +7,10 @@
     android:padding="24dp">
 
     <TextView
+        android:id="@+id/dialogHeaderTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Add New Event"
+        android:text="Add New Event/Edit Event"
         android:textSize="22sp"
         android:textStyle="bold"
         android:textColor="?attr/colorOnSurface"

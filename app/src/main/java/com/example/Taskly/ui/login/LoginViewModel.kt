@@ -15,7 +15,7 @@ class LoginViewModel : ViewModel() {
 
     // --- Add a companion object for the preference key ---
     companion object {
-        private const val PREF_LOGGED_IN_EMAIL = "logged_in_email"
+        const val PREF_LOGGED_IN_EMAIL = "logged_in_email"
     }
     // -----------------------------------------------------
 

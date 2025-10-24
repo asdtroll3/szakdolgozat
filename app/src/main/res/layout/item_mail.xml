@@ -13,6 +13,17 @@
         android:layout_height="wrap_content"
         android:padding="12dp">
 
+        <ImageView
+            android:id="@+id/unreadDot"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:src="@drawable/dot_accent"
+            app:tint="@color/teal_2"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@id/mailFromOrTo"
+            app:layout_constraintBottom_toBottomOf="@id/mailFromOrTo"
+            android:contentDescription="Unread" />
         <TextView
             android:id="@+id/mailFromOrTo"
             android:layout_width="0dp"
@@ -22,19 +33,17 @@
             android:textStyle="bold"
             android:textColor="?attr/colorOnSurface"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/mailTimestamp"/>
-
-        <TextView
-            android:id="@+id/mailTimestamp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Jan 1, 2024"
-            android:textSize="12sp"
-            android:textColor="?attr/colorOnSecondary"
-            app:layout_constraintTop_toTopOf="@id/mailFromOrTo"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="@id/mailFromOrTo"/>
+            app:layout_constraintStart_toEndOf="@id/unreadDot" app:layout_constraintEnd_toStartOf="@id/mailTimestamp"
+            android:layout_marginStart="8dp"/> <TextView
+        android:id="@+id/mailTimestamp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Jan 1, 2024"
+        android:textSize="12sp"
+        android:textColor="?attr/colorOnSecondary"
+        app:layout_constraintTop_toTopOf="@id/mailFromOrTo"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="@id/mailFromOrTo"/>
 
         <TextView
             android:id="@+id/mailSubject"
@@ -47,8 +56,7 @@
             android:maxLines="1"
             android:ellipsize="end"
             app:layout_constraintTop_toBottomOf="@id/mailFromOrTo"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintStart_toStartOf="@id/mailFromOrTo" app:layout_constraintEnd_toEndOf="parent" />
 
         <TextView
             android:id="@+id/mailSnippet"
@@ -61,8 +69,7 @@
             android:maxLines="2"
             android:ellipsize="end"
             app:layout_constraintTop_toBottomOf="@id/mailSubject"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintStart_toStartOf="@id/mailSubject" app:layout_constraintEnd_toEndOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>

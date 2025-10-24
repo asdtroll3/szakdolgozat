@@ -12,11 +12,21 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.example.Taskly.App.Companion.EVENT_CHANNEL_ID
 import android.graphics.BitmapFactory
+import com.example.Taskly.ui.login.LoginViewModel
 
 class EventNotificationReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         Log.d("EventReceiver", "onReceive triggered!")
+
+        val ownerEmail = intent.getStringExtra("EXTRA_EVENT_OWNER_EMAIL")
+        val currentEmail = App.sharedPreferences.getString(LoginViewModel.PREF_LOGGED_IN_EMAIL, null)
+
+        if (ownerEmail == null || ownerEmail != currentEmail) {
+            Log.d("EventReceiver", "Skipping notification. Event owner ($ownerEmail) does not match logged in user ($currentEmail).")
+            return
+        }
+
         val eventId = intent.getIntExtra("EXTRA_EVENT_ID", 0)
         val title = intent.getStringExtra("EXTRA_EVENT_TITLE") ?: "Event Reminder"
         val description = intent.getStringExtra("EXTRA_EVENT_DESCRIPTION") ?: "Your event is starting soon."

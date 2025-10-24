@@ -9,7 +9,6 @@ import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 import com.example.Taskly.ui.calendar.Event
-import java.util.concurrent.TimeUnit
 
 object NotificationScheduler {
 
@@ -42,6 +41,7 @@ object NotificationScheduler {
                 putExtra("EXTRA_EVENT_ID", event.id)
                 putExtra("EXTRA_EVENT_TITLE", event.title)
                 putExtra("EXTRA_EVENT_DESCRIPTION", event.description)
+                putExtra("EXTRA_EVENT_OWNER_EMAIL", event.ownerEmail)
             }
 
             val pendingIntent = PendingIntent.getBroadcast(

@@ -50,8 +50,8 @@ class CalendarFragment : Fragment() {
     private lateinit var eventAdapter: EventAdapter
 
     // Store selected start and end times
-    private var startCalendar: Calendar = Calendar.getInstance()
-    private var endCalendar: Calendar = Calendar.getInstance()
+    //private var startCalendar: Calendar = Calendar.getInstance()
+    //private var endCalendar: Calendar = Calendar.getInstance()
 
     // Chat functionality
     private lateinit var userInput: EditText
@@ -327,8 +327,8 @@ class CalendarFragment : Fragment() {
     private fun setupRecyclerView() {
         eventAdapter = EventAdapter(
             onEventCheckedChange = { event, isChecked ->
+                // ... (this logic is unchanged)
                 event.isCompleted = isChecked
-                // Update the event in database
                 lifecycleScope.launch {
                     try {
                         App.database.eventDao().updateEvent(event)
@@ -349,7 +349,12 @@ class CalendarFragment : Fragment() {
             },
             onEventDeleteClick = { event ->
                 showDeleteConfirmationDialog(event)
+            },
+            // --- ADD THIS ---
+            onEventEditClick = { event ->
+                showAddEventDialog(event) // Call the *same* dialog function, but with an event
             }
+            // ----------------
         )
         binding.eventsRecyclerView.apply {
             layoutManager = LinearLayoutManager(context)
@@ -359,7 +364,7 @@ class CalendarFragment : Fragment() {
 
     private fun setupAddEventButton() {
         binding.calendarAddEvent.setOnClickListener {
-            showAddEventDialog()
+            showAddEventDialog(null)
         }
     }
 
@@ -385,51 +390,74 @@ class CalendarFragment : Fragment() {
         timePickerDialog.show()
     }
 
-    private fun showAddEventDialog() {
+    private fun showAddEventDialog(eventToEdit: Event?) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_event, null, false)
+        val dialogHeader = dialogView.findViewById<TextView>(R.id.dialogHeaderTitle)
         val titleEdit = dialogView.findViewById<EditText>(R.id.eventTitleEdit)
         val descEdit = dialogView.findViewById<EditText>(R.id.eventDescriptionEdit)
         val startTimeEdit = dialogView.findViewById<TextInputEditText>(R.id.startTimeEdit)
         val endTimeEdit = dialogView.findViewById<TextInputEditText>(R.id.endTimeEdit)
         val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
-        // Set initial times
-        startCalendar.time = Date()
-        startCalendar.add(Calendar.HOUR_OF_DAY, 1)
-        endCalendar.time = startCalendar.time
-        endCalendar.add(Calendar.HOUR_OF_DAY, 1)
+        // Determine mode (Add vs. Edit)
+        val isEditMode = eventToEdit != null
 
+        // Set dialog title and button text
+        val dialogTitle = if (isEditMode) "Edit Event" else "Add New Event"
+        val positiveButtonText = if (isEditMode) "Save" else "Add"
+        dialogHeader.text = dialogTitle
+
+        // Initialize time calendars
+        val startCalendar = Calendar.getInstance()
+        val endCalendar = Calendar.getInstance()
+
+        if (isEditMode) {
+            // Edit Mode: Pre-populate fields
+            titleEdit.setText(eventToEdit!!.title)
+            descEdit.setText(eventToEdit.description)
+            startCalendar.time = eventToEdit.startTime
+            endCalendar.time = eventToEdit.endTime
+        } else {
+            // Add Mode: Set default times for a new event
+            startCalendar.time = Date()
+            startCalendar.add(Calendar.HOUR_OF_DAY, 1)
+            endCalendar.time = startCalendar.time
+            endCalendar.add(Calendar.HOUR_OF_DAY, 1)
+        }
+
+        // Set time text fields
         startTimeEdit.setText(timeFormat.format(startCalendar.time))
         endTimeEdit.setText(timeFormat.format(endCalendar.time))
 
+        // Set up time picker listeners
         startTimeEdit.setOnClickListener {
             showTimePickerDialog(requireContext(), startCalendar) { newCalendar ->
-                startCalendar = newCalendar
+                startCalendar.time = newCalendar.time
                 startTimeEdit.setText(timeFormat.format(startCalendar.time))
             }
         }
-
         endTimeEdit.setOnClickListener {
             showTimePickerDialog(requireContext(), endCalendar) { newCalendar ->
-                endCalendar = newCalendar
+                endCalendar.time = newCalendar.time
                 endTimeEdit.setText(timeFormat.format(endCalendar.time))
             }
         }
+
         val dialog = MaterialAlertDialogBuilder(requireContext())
             .setView(dialogView)
-            .setPositiveButton("Add", null) // Will be overridden
+            .setPositiveButton(positiveButtonText, null) // Set button text based on mode
             .setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
             .create()
 
         dialog.setOnShowListener {
-            val addButton = dialog.getButton(DialogInterface.BUTTON_POSITIVE)
-            addButton.setOnClickListener {
+            val saveButton = dialog.getButton(DialogInterface.BUTTON_POSITIVE)
+            saveButton.setOnClickListener {
                 val title = titleEdit.text.toString().trim()
                 val description = descEdit.text.toString().trim()
 
                 val currentUser = loginViewModel.loggedInUser.value
                 if (currentUser == null) {
-                    Toast.makeText(requireContext(), "You must be logged in to add an event", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "You must be logged in", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
 
@@ -437,11 +465,8 @@ class CalendarFragment : Fragment() {
                     titleEdit.error = "Title cannot be empty"
                     return@setOnClickListener
                 }
-                // Convert LocalDate to Calendar for database operations
-                val selectedCalendar = Calendar.getInstance().apply {
-                    set(selectedDate.year, selectedDate.monthValue - 1, selectedDate.dayOfMonth)
-                }
 
+                // --- MODIFIED SAVE LOGIC ---
                 // Set start time using the currently selected date
                 val startTime = Calendar.getInstance().apply {
                     set(
@@ -453,7 +478,6 @@ class CalendarFragment : Fragment() {
                         0
                     )
                 }
-
                 // Set end time using the currently selected date
                 val endTime = Calendar.getInstance().apply {
                     set(
@@ -466,16 +490,35 @@ class CalendarFragment : Fragment() {
                     )
                 }
 
+                // Convert selected LocalDate to Calendar for the 'date' field
+                val selectedDateCalendar = Calendar.getInstance().apply {
+                    set(selectedDate.year, selectedDate.monthValue - 1, selectedDate.dayOfMonth)
+                }
+
                 // Ensure end time is after start time
                 if (endTime.after(startTime)) {
-                    addNewEvent(
-                        currentUser.email,
-                        title,
-                        description,
-                        startTime.time,
-                        endTime.time,
-                        selectedCalendar.time
-                    )
+
+                    if (isEditMode) {
+                        // UPDATE existing event
+                        val updatedEvent = eventToEdit!!.copy(
+                            title = title,
+                            description = description,
+                            date = selectedDateCalendar.time, // Update date in case user edited an event from another day
+                            startTime = startTime.time,
+                            endTime = endTime.time
+                        )
+                        updateEvent(updatedEvent)
+                    } else {
+                        // ADD new event
+                        addNewEvent(
+                            currentUser.email,
+                            title,
+                            description,
+                            startTime.time,
+                            endTime.time,
+                            selectedDateCalendar.time
+                        )
+                    }
                     dialog.dismiss()
                 } else {
                     Toast.makeText(
@@ -558,6 +601,31 @@ class CalendarFragment : Fragment() {
 
     private fun loadEventsForSelectedDate() {
         updateEventsForDate(selectedDate)
+    }
+    private fun updateEvent(event: Event) {
+        lifecycleScope.launch {
+            try {
+                App.database.eventDao().updateEvent(event)
+
+                // Re-schedule the notification
+                NotificationScheduler.cancelNotification(requireContext(), event)
+                NotificationScheduler.scheduleNotification(requireContext(), event)
+
+                loadEventsForSelectedDate() // Refresh the list
+                Toast.makeText(
+                    requireContext(),
+                    "Event updated successfully!",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } catch (e: Exception) {
+                Log.e("CalendarFragment", "Error updating event", e)
+                Toast.makeText(
+                    requireContext(),
+                    "Error updating event",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
     }
 
     private fun updateEventsForDate(selectedDate: LocalDate) {

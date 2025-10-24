@@ -15,6 +15,8 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import android.app.TimePickerDialog
+import java.text.SimpleDateFormat
 import com.example.Taskly.App
 import com.example.Taskly.R
 import com.example.Taskly.ui.calendar.Event
@@ -33,6 +35,8 @@ import java.util.Calendar
 import com.example.Taskly.NotificationScheduler
 import androidx.fragment.app.activityViewModels
 import com.example.Taskly.ui.login.LoginViewModel
+import com.google.android.material.textfield.TextInputEditText
+import java.util.Locale
 
 class TodayFragment : Fragment() {
 
@@ -95,6 +99,7 @@ class TodayFragment : Fragment() {
         // Reuse the existing EventAdapter
         eventAdapter = EventAdapter(
             onEventCheckedChange = { event, isChecked ->
+                // ... (this logic is unchanged)
                 event.isCompleted = isChecked
                 lifecycleScope.launch {
                     try {
@@ -112,7 +117,12 @@ class TodayFragment : Fragment() {
             },
             onEventDeleteClick = { event ->
                 showDeleteConfirmationDialog(event)
+            },
+            // --- ADD THIS ---
+            onEventEditClick = { event ->
+                showEditEventDialog(event)
             }
+            // ----------------
         )
         todayEventsRecyclerView.apply {
             layoutManager = LinearLayoutManager(context)
@@ -354,6 +364,118 @@ class TodayFragment : Fragment() {
         } catch (e: Exception) {
             "Error parsing response: ${e.message}"
         }
+    }
+    private fun showEditEventDialog(eventToEdit: Event) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_event, null, false)
+        val dialogHeader = dialogView.findViewById<TextView>(R.id.dialogHeaderTitle)
+        val titleEdit = dialogView.findViewById<EditText>(R.id.eventTitleEdit)
+        val descEdit = dialogView.findViewById<EditText>(R.id.eventDescriptionEdit)
+        val startTimeEdit = dialogView.findViewById<TextInputEditText>(R.id.startTimeEdit)
+        val endTimeEdit = dialogView.findViewById<TextInputEditText>(R.id.endTimeEdit)
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        dialogHeader.text = "Edit Event"
+
+        // Create calendars for time pickers
+        val startCalendar = Calendar.getInstance().apply { time = eventToEdit.startTime }
+        val endCalendar = Calendar.getInstance().apply { time = eventToEdit.endTime }
+
+        // Pre-populate fields
+        titleEdit.setText(eventToEdit.title)
+        descEdit.setText(eventToEdit.description)
+        startTimeEdit.setText(timeFormat.format(startCalendar.time))
+        endTimeEdit.setText(timeFormat.format(endCalendar.time))
+
+        // Time picker logic (same as in CalendarFragment)
+        startTimeEdit.setOnClickListener {
+            showTimePickerDialog(startCalendar) { newCalendar ->
+                startCalendar.time = newCalendar.time
+                startTimeEdit.setText(timeFormat.format(startCalendar.time))
+            }
+        }
+        endTimeEdit.setOnClickListener {
+            showTimePickerDialog(endCalendar) { newCalendar ->
+                endCalendar.time = newCalendar.time
+                endTimeEdit.setText(timeFormat.format(endCalendar.time))
+            }
+        }
+
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(dialogView)
+            .setPositiveButton("Save", null) // Set button text
+            .setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
+            .create()
+
+        dialog.setOnShowListener {
+            val saveButton = dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE)
+            saveButton.setOnClickListener {
+                val title = titleEdit.text.toString().trim()
+                val description = descEdit.text.toString().trim()
+
+                if (title.isEmpty()) {
+                    titleEdit.error = "Title cannot be empty"
+                    return@setOnClickListener
+                }
+
+                // Ensure end time is after start time
+                if (endCalendar.after(startCalendar)) {
+                    // Create the updated event object
+                    val updatedEvent = eventToEdit.copy(
+                        title = title,
+                        description = description,
+                        startTime = startCalendar.time,
+                        endTime = endCalendar.time,
+                        // Note: 'date' field from original event is preserved
+                    )
+
+                    // Launch coroutine to update
+                    lifecycleScope.launch {
+                        try {
+                            App.database.eventDao().updateEvent(updatedEvent)
+
+                            // Re-schedule notification
+                            NotificationScheduler.cancelNotification(requireContext(), updatedEvent)
+                            NotificationScheduler.scheduleNotification(requireContext(), updatedEvent)
+
+                            Toast.makeText(requireContext(), "Event updated!", Toast.LENGTH_SHORT).show()
+                            loadTodayEvents() // Refresh the list
+                            dialog.dismiss()
+                        } catch (e: Exception) {
+                            Log.e("TodayFragment", "Error updating event", e)
+                            Toast.makeText(requireContext(), "Error updating event", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        "End time must be after start time",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    // --- ADD THIS HELPER FUNCTION ---
+    private fun showTimePickerDialog(
+        calendar: Calendar,
+        onTimeSet: (Calendar) -> Unit
+    ) {
+        val timePickerDialog = TimePickerDialog(
+            requireContext(),
+            { _, hourOfDay, minute ->
+                val newCalendar = Calendar.getInstance().apply {
+                    time = calendar.time
+                    set(Calendar.HOUR_OF_DAY, hourOfDay)
+                    set(Calendar.MINUTE, minute)
+                }
+                onTimeSet(newCalendar)
+            },
+            calendar.get(Calendar.HOUR_OF_DAY),
+            calendar.get(Calendar.MINUTE),
+            true // 24-hour format
+        )
+        timePickerDialog.show()
     }
 
     override fun onDestroyView() {
