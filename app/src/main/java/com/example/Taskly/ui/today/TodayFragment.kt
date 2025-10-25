@@ -1,8 +1,10 @@
 package com.example.Taskly.ui.today
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
@@ -16,7 +18,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import android.app.TimePickerDialog
+import android.content.Context
 import android.content.DialogInterface
+import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
 import android.widget.Spinner
 import java.text.SimpleDateFormat
@@ -75,6 +79,7 @@ class TodayFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_today, container, false)
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -88,6 +93,14 @@ class TodayFragment : Fragment() {
             } else {
                 userProjects = emptyList()
             }
+        }
+        view.setOnTouchListener { v, event ->
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                hideKeyboard()
+                // v.performClick() // Optional: Call this if you need accessibility support for the root view itself
+            }
+            // Return false so the touch event continues to propagate to children (like RecyclerView scrolling)
+            false
         }
     }
     private fun fetchUserProjects(email: String) {
@@ -142,11 +155,14 @@ class TodayFragment : Fragment() {
             onEventDeleteClick = { event ->
                 showDeleteConfirmationDialog(event)
             },
-            // --- ADD THIS ---
             onEventEditClick = { event ->
                 showEditEventDialog(event)
+            },
+            onEventHelpClick = { event ->
+                val helpPrompt = "Help me with this task: \nTitle: ${event.title}\nDescription: ${event.description}"
+                userInput.setText(helpPrompt)
+                handleSendMessage()
             }
-            // ----------------
         )
         todayEventsRecyclerView.apply {
             layoutManager = LinearLayoutManager(context)
@@ -243,6 +259,14 @@ class TodayFragment : Fragment() {
             } else {
                 false
             }
+        }
+    }
+    private fun hideKeyboard() {
+        val view = activity?.currentFocus
+        if (view != null) {
+            val imm = activity?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.hideSoftInputFromWindow(view.windowToken, 0)
+            view.clearFocus()
         }
     }
 

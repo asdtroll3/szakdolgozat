@@ -1,9 +1,13 @@
 package com.example.Taskly.ui.login
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.MotionEvent
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -35,6 +39,7 @@ class LoginFragment : Fragment() {
         return binding.root
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -59,6 +64,20 @@ class LoginFragment : Fragment() {
         }
         binding.backButton.setOnClickListener {
             findNavController().popBackStack()
+        }
+        view.setOnTouchListener { v, event ->
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                hideKeyboard()
+            }
+            false
+        }
+    }
+    private fun hideKeyboard() {
+        val view = activity?.currentFocus
+        if (view != null) {
+            val imm = activity?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.hideSoftInputFromWindow(view.windowToken, 0)
+            view.clearFocus()
         }
     }
 

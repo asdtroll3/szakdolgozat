@@ -13,7 +13,8 @@ class EventAdapter(
     private val showDate: Boolean,
     private val onEventCheckedChange: (Event, Boolean) -> Unit,
     private val onEventDeleteClick: (Event) -> Unit,
-    private val onEventEditClick: (Event) -> Unit
+    private val onEventEditClick: (Event) -> Unit,
+    private val onEventHelpClick: ((Event) -> Unit)? = null
 ) : RecyclerView.Adapter<EventAdapter.EventViewHolder>() {
     private var events: List<Event> = emptyList()
 
@@ -54,6 +55,14 @@ class EventAdapter(
 
             binding.editEventIcon.setOnClickListener {
                 onEventEditClick(event)
+            }
+            if (onEventHelpClick != null) {
+                binding.helpEventIcon.visibility = View.VISIBLE
+                binding.helpEventIcon.setOnClickListener {
+                    onEventHelpClick?.invoke(event)
+                }
+            } else {
+                binding.helpEventIcon.visibility = View.GONE
             }
         }
 
