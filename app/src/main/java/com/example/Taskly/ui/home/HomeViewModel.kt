@@ -43,14 +43,12 @@ class HomeViewModel : ViewModel() {
     }
     val text: LiveData<String> = _text
 
-    // LiveData for projects
     private val _projects = MutableLiveData<List<ProjectWithCount>>(emptyList())
     val projects: LiveData<List<ProjectWithCount>> = _projects
 
     private val _quote = MutableLiveData<String>()
     val quote: LiveData<String> = _quote
 
-    // LiveData to hold projects for a specific user
     private var userProjectsLiveData: LiveData<List<Project>>? = null
 
     init {
@@ -58,22 +56,17 @@ class HomeViewModel : ViewModel() {
     }
 
     fun loadProjectsForUser(email: String) {
-        // Remove any existing observer
         userProjectsLiveData?.removeObserver(projectObserver)
 
-        // Get new LiveData from DAO
         val liveData = projectDao.getProjectsForUser(email)
 
-        // Observe it
         liveData.observeForever(projectObserver)
         userProjectsLiveData = liveData
     }
 
     private val projectObserver = Observer<List<Project>> { projects ->
-        // Got the list of projects, now get the count for each
-        viewModelScope.launch(Dispatchers.IO) { // Use IO dispatcher for DB calls
+        viewModelScope.launch(Dispatchers.IO) {
             val projectsWithCount = projects.map { project ->
-                // Call the new DAO function
                 val count = eventDao.getEventCountForProject(project.id, project.ownerEmail)
                 ProjectWithCount(project, count)
             }
@@ -88,7 +81,6 @@ class HomeViewModel : ViewModel() {
 
     fun addProject(projectName: String, iconName: String, ownerEmail: String) {
         if (projectName.isBlank() || ownerEmail.isBlank()) {
-            // Handle error (e.g., with a LiveData event)
             return
         }
 
@@ -99,19 +91,16 @@ class HomeViewModel : ViewModel() {
                 iconName = iconName
             )
             projectDao.insert(newProject)
-            // The LiveData will update automatically
         }
     }
     fun fetchQuoteOfTheDay() {
-        _quote.postValue("Loading quote...") // Show loading state
+        _quote.postValue("Loading quote...")
         viewModelScope.launch(Dispatchers.IO) {
             val prompt = "Give me a short, inspirational or insightful quote for the day (max 2 sentences)."
             val result = makeGeminiApiCall(prompt)
             val quoteToDisplay = result ?: "Could not fetch quote."
             _quote.postValue(quoteToDisplay)
 
-            // If fetch was successful (or even if not, to prevent constant retries on error),
-            // store the quote and today's date
             if (result != null) {
                 val todayDateString = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
                 sharedPreferences.edit()
@@ -183,7 +172,6 @@ class HomeViewModel : ViewModel() {
     }
 
     override fun onCleared() {
-        // Clean up the observer when ViewModel is cleared
         userProjectsLiveData?.removeObserver(projectObserver)
         super.onCleared()
     }

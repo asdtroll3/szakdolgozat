@@ -1,5 +1,6 @@
 package com.example.Taskly.ui.mail
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -28,12 +29,9 @@ class MailViewModel : ViewModel() {
     private val _sent = MutableLiveData<List<Mail>>()
     val sent: LiveData<List<Mail>> = _sent
 
-    // Used to communicate send status back to fragment
-    // String will contain an error message, null means success
     private val _sendMailStatus = MutableLiveData<String?>()
     val sendMailStatus: LiveData<String?> = _sendMailStatus
 
-    // --- New additions for Summarization ---
     private val client = OkHttpClient()
     private val apiKey = "AIzaSyCtQ8vKKwdZsmKaesTfTO2l0FJ8CtTYzRQ"
     private val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
@@ -52,7 +50,6 @@ class MailViewModel : ViewModel() {
 
     private val _replyError = MutableLiveData<String?>()
     val replyError: LiveData<String?> = _replyError
-    // --- End of new additions ---
 
 
     fun loadInbox(userEmail: String) {
@@ -60,7 +57,6 @@ class MailViewModel : ViewModel() {
             try {
                 _inbox.postValue(mailDao.getInbox(userEmail))
             } catch (e: Exception) {
-                // Handle error
                 _inbox.postValue(emptyList())
             }
         }
@@ -71,7 +67,6 @@ class MailViewModel : ViewModel() {
             try {
                 _sent.postValue(mailDao.getSentItems(userEmail))
             } catch (e: Exception) {
-                // Handle error
                 _sent.postValue(emptyList())
             }
         }
@@ -80,14 +75,12 @@ class MailViewModel : ViewModel() {
     fun sendMail(senderEmail: String, recipientEmail: String, subject: String, body: String) {
         viewModelScope.launch {
 
-            // Check if recipient user exists
             val recipientExists = userDao.findUserByEmail(recipientEmail)
             if (recipientExists == null) {
                 _sendMailStatus.postValue("Error: Recipient user '$recipientEmail' not found.")
                 return@launch
             }
 
-            // Create and insert mail
             try {
                 val newMail = Mail(
                     senderEmail = senderEmail,
@@ -97,9 +90,8 @@ class MailViewModel : ViewModel() {
                     timestamp = System.currentTimeMillis()
                 )
                 mailDao.insertMail(newMail)
-                _sendMailStatus.postValue(null) // Success
+                _sendMailStatus.postValue(null) //success
 
-                // Refresh sent items
                 loadSentItems(senderEmail)
                 if (senderEmail.equals(recipientEmail, ignoreCase = true)) {
                     loadInbox(senderEmail)
@@ -110,18 +102,15 @@ class MailViewModel : ViewModel() {
         }
     }
     fun markMailAsRead(mail: Mail) {
-        // Only mark as read if it's not already read and it's an inbox mail
-        // We check the recipient email against the logged-in user's email
         val currentUserEmail = App.sharedPreferences.getString("logged_in_email", null)
         if (!mail.isRead && mail.recipientEmail.equals(currentUserEmail, ignoreCase = true)) {
             viewModelScope.launch {
                 try {
                     mailDao.markAsRead(mail.id)
-                    // Manually update the LiveData list to show the change instantly
                     _inbox.value?.let { currentInbox ->
                         val updatedList = currentInbox.map {
                             if (it.id == mail.id) {
-                                it.copy(isRead = true) // Return a new Mail object with isRead = true
+                                it.copy(isRead = true)
                             } else {
                                 it
                             }
@@ -130,7 +119,7 @@ class MailViewModel : ViewModel() {
                     }
 
                 } catch (e: Exception) {
-                    // Handle error, maybe log it
+                    Log.e("MailViewModel", "neeem, ${e.message}")
                 }
             }
         }
@@ -138,14 +127,12 @@ class MailViewModel : ViewModel() {
     fun deleteMail(mail: Mail) {
         viewModelScope.launch {
             try {
-                // Instead of deleting, we just mark it as deleted
                 mailDao.markAsDeletedByRecipient(mail.id)
 
-                // Now, just refresh the inbox. The sent list is unaffected.
                 loadInbox(mail.recipientEmail)
 
             } catch (e: Exception) {
-                // Handle any errors, e.g., show a toast via a LiveData event
+                //
             }
         }
     }
@@ -155,7 +142,6 @@ class MailViewModel : ViewModel() {
         _sent.value = emptyList()
     }
 
-    // --- New functions for Summarization ---
 
     fun summarizeMail(body: String) {
         _isSummarizing.postValue(true)
@@ -168,11 +154,10 @@ class MailViewModel : ViewModel() {
     }
     fun generateReply(mail: Mail) {
         _isGeneratingReply.postValue(true)
-        _replyError.postValue(null) // Clear previous errors
-        _replyResult.postValue(null) // Clear previous results
+        _replyError.postValue(null)
+        _replyResult.postValue(null)
 
         viewModelScope.launch(Dispatchers.IO) {
-            // Create a prompt asking for a JSON response
             val prompt = """
                 Generate a professional reply to the following email:
                 
@@ -188,31 +173,26 @@ class MailViewModel : ViewModel() {
                 }
             """.trimIndent()
 
-            val result = makeGeminiApiCall(prompt) // Re-use the existing API call function
+            val result = makeGeminiApiCall(prompt)
 
             if (result == null || result.startsWith("Error:") || result.startsWith("Network error:") || result.startsWith("API Error:") || result.startsWith("Blocked due to")) {
                 _replyError.postValue(result ?: "Error: No response from AI.")
             } else {
-                // Parse the JSON
                 try {
-                    // --- THIS IS THE FIX ---
-                    // Clean the string to remove markdown backticks
+
                     var jsonString = result.trim()
                     if (jsonString.startsWith("```json")) {
-                        // Remove ```json at the start and ``` at the end
                         jsonString = jsonString.substring(7, jsonString.length - 3).trim()
                     } else if (jsonString.startsWith("```")) {
-                        // Remove ``` at the start and ``` at the end
                         jsonString = jsonString.substring(3, jsonString.length - 3).trim()
                     }
-                    // --- END OF FIX ---
 
-                    val jsonResponse = JSONObject(jsonString) // Parse the cleaned string
+                    val jsonResponse = JSONObject(jsonString)
                     val subject = jsonResponse.getString("subject")
                     val body = jsonResponse.getString("body")
                     _replyResult.postValue(AiReply(subject, body))
                 } catch (e: Exception) {
-                    _replyError.postValue("Error parsing AI reply. Raw: $result")
+                    _replyError.postValue("Error parsing AI reply. JSONBUG: $result")
                 }
             }
             _isGeneratingReply.postValue(false)
@@ -222,7 +202,6 @@ class MailViewModel : ViewModel() {
     private suspend fun makeGeminiApiCall(prompt: String): String? {
         return withContext(Dispatchers.IO) {
             try {
-                // Build a single, one-shot request
                 val json = JSONObject().apply {
                     val contentsArray = JSONArray().apply {
                         put(JSONObject().apply {

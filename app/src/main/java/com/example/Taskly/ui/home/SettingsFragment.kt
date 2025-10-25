@@ -8,7 +8,6 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
-import com.example.Taskly.App
 import com.example.Taskly.R
 import com.example.Taskly.databinding.FragmentSettingsBinding
 import com.example.Taskly.ui.login.LoginViewModel
@@ -38,21 +37,28 @@ class SettingsFragment : Fragment() {
 
         val darkModeSwitch = binding.darkModeSwitch
 
-        // --- Use the global App.sharedPreferences ---
-        val sharedPreferences = App.sharedPreferences
-        // ------------------------------------------
+        loginViewModel.loggedInUser.observe(viewLifecycleOwner) { user ->
+            if (user != null) {
 
-        // Set the switch to the current saved state
-        val isDarkMode = sharedPreferences.getBoolean("dark_mode", false)
-        darkModeSwitch.isChecked = isDarkMode
+                binding.logoutCard.visibility = View.VISIBLE
 
-        darkModeSwitch.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-                sharedPreferences.edit().putBoolean("dark_mode", true).apply()
+                darkModeSwitch.setOnCheckedChangeListener(null)
+                darkModeSwitch.isChecked = user.isDarkMode
+
+
+                darkModeSwitch.setOnCheckedChangeListener { _, isChecked ->
+                    if (isChecked) {
+                        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                    } else {
+                        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                    }
+                    loginViewModel.updateUserDarkMode(isChecked)
+                }
+
             } else {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-                sharedPreferences.edit().putBoolean("dark_mode", false).apply()
+                binding.logoutCard.visibility = View.GONE
+                darkModeSwitch.isChecked = false
+                darkModeSwitch.setOnCheckedChangeListener(null)
             }
         }
         binding.backButton.setOnClickListener {
@@ -60,24 +66,20 @@ class SettingsFragment : Fragment() {
         }
         loginViewModel.loggedInUser.observe(viewLifecycleOwner) { user ->
             if (user != null) {
-                // User is logged in, show the logout button
                 binding.logoutCard.visibility = View.VISIBLE
             } else {
-                // User is logged out, hide the button
                 binding.logoutCard.visibility = View.GONE
             }
         }
 
-        // Handle logout click
+
         binding.logoutCard.setOnClickListener {
             loginViewModel.logout()
-            // Navigate back to the home screen
             findNavController().popBackStack()
         }
     }
 
     override fun onDestroyView() {
-        // Restore the bottom navigation view *before* the view is destroyed
         activity?.findViewById<BottomNavigationView>(R.id.nav_view)?.visibility = View.VISIBLE
 
         super.onDestroyView()

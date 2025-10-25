@@ -31,7 +31,7 @@ class MailFragment : Fragment() {
     private val loginViewModel: LoginViewModel by activityViewModels()
     private lateinit var mailAdapter: MailAdapter
 
-    private var currentTabPosition = 0 // 0 for Inbox, 1 for Sent
+    private var currentTabPosition = 0
 
     private var loadingDialog: AlertDialog? = null
     private var mailBeingProcessed: Mail? = null
@@ -57,14 +57,11 @@ class MailFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        // This is your original code to set up the adapter
         mailAdapter = MailAdapter(
             onMailClick = { mail ->
-                // Check if we are in the "Inbox" tab (position 0)
                 if (currentTabPosition == 0) {
                     showMailOptionsDialog(mail)
                 } else {
-                    // For "Sent" tab, just show the details
                     showMailDetailsDialog(mail)
                 }
             },
@@ -75,21 +72,17 @@ class MailFragment : Fragment() {
             adapter = mailAdapter
         }
 
-        // --- MODIFIED SWIPE-TO-DELETE LOGIC ---
         val itemTouchCallback = object : ItemTouchHelper.SimpleCallback(
-            0, // We don't support drag & drop
-            ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT // Default swipe directions
+            0,
+            ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
         ) {
             override fun getSwipeDirs(
                 recyclerView: RecyclerView,
                 viewHolder: RecyclerView.ViewHolder
             ): Int {
-                // Check the current tab position
-                // 0 = Inbox, 1 = Sent
                 if (currentTabPosition == 1) {
-                    return 0 // Return 0 to disable swiping
+                    return 0
                 }
-                // Otherwise, allow swiping
                 return super.getSwipeDirs(recyclerView, viewHolder)
             }
 
@@ -98,37 +91,31 @@ class MailFragment : Fragment() {
                 viewHolder: RecyclerView.ViewHolder,
                 target: RecyclerView.ViewHolder
             ): Boolean {
-                return false // Not used
+                return false
             }
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                // This code will now ONLY run if we are on the "Inbox" tab
-                // because getSwipeDirs() disabled it for the "Sent" tab.
 
                 val position = viewHolder.adapterPosition
                 val mail = mailAdapter.currentList[position]
 
-                // Show a confirmation dialog
                 MaterialAlertDialogBuilder(requireContext(), R.style.DeleteDialogTheme)
                     .setTitle("Delete Mail")
                     .setMessage("Are you sure you want to delete this mail?")
                     .setNegativeButton("Cancel") { dialog, _ ->
-                        // User cancelled, notify adapter to refresh the item
                         mailAdapter.notifyItemChanged(position)
                         dialog.dismiss()
                     }
                     .setPositiveButton("Delete") { dialog, _ ->
-                        // User confirmed, call the ViewModel to delete
                         mailViewModel.deleteMail(mail)
                         Toast.makeText(requireContext(), "Mail deleted", Toast.LENGTH_SHORT).show()
                         dialog.dismiss()
                     }
-                    .setCancelable(false) // Prevent dismissing on outside touch
+                    .setCancelable(false)
                     .show()
             }
         }
 
-        // Attach the callback to the RecyclerView
         ItemTouchHelper(itemTouchCallback).attachToRecyclerView(binding.mailRecyclerView)
     }
 
@@ -144,14 +131,14 @@ class MailFragment : Fragment() {
     }
 
     private fun updateMailList() {
-        val mails = if (currentTabPosition == 0) { // Inbox
+        val mails = if (currentTabPosition == 0) {
             mailViewModel.inbox.value
-        } else { // Sent
+        } else {
             mailViewModel.sent.value
         }
         mailAdapter.submitList(mails)
 
-        binding.mailRecyclerView.scrollToPosition(0) // Scroll to top
+        binding.mailRecyclerView.scrollToPosition(0)
     }
 
 
@@ -164,40 +151,36 @@ class MailFragment : Fragment() {
     private fun observeViewModels() {
         loginViewModel.loggedInUser.observe(viewLifecycleOwner) { user ->
             if (user != null) {
-                // User is logged in
                 binding.textMailInfo.visibility = View.GONE
                 binding.mailRecyclerView.visibility = View.VISIBLE
                 binding.fabComposeMail.visibility = View.VISIBLE
-                // Load mail
+
                 mailViewModel.loadInbox(user.email)
                 mailViewModel.loadSentItems(user.email)
             } else {
-                // User is logged out
-                binding.textMailInfo.setText(R.string.title_mail) // You can change this message
+
+                //binding.textMailInfo.setText(R.string.title_mail)
                 binding.textMailInfo.visibility = View.VISIBLE
                 binding.mailRecyclerView.visibility = View.GONE
                 binding.fabComposeMail.visibility = View.GONE
-                // Clear lists
+
                 mailViewModel.clearMail()
                 mailAdapter.submitList(emptyList())
             }
         }
 
-        // Observe inbox
         mailViewModel.inbox.observe(viewLifecycleOwner) { inboxMails ->
             if (currentTabPosition == 0) {
                 mailAdapter.submitList(inboxMails)
             }
         }
 
-        // Observe sent items
         mailViewModel.sent.observe(viewLifecycleOwner) { sentMails ->
             if (currentTabPosition == 1) {
                 mailAdapter.submitList(sentMails)
             }
         }
 
-        // Observe mail send status
         mailViewModel.sendMailStatus.observe(viewLifecycleOwner) { errorMessage ->
             if (errorMessage == null) {
                 Toast.makeText(requireContext(), "Mail sent successfully!", Toast.LENGTH_SHORT).show()
@@ -214,18 +197,15 @@ class MailFragment : Fragment() {
         }
 
         mailViewModel.summaryResult.observe(viewLifecycleOwner) { summary ->
-            // This observer is triggered *after* summarization is complete.
-            // The loading dialog is already hidden by the isSummarizing observer.
-            val mail = mailBeingProcessed ?: return@observe // Get the mail we're working on
+            val mail = mailBeingProcessed ?: return@observe
 
             if (summary.startsWith("Error:") || summary.startsWith("Network error:") || summary.startsWith("API Error:") || summary.startsWith("Blocked due to")) {
                 Toast.makeText(requireContext(), summary, Toast.LENGTH_LONG).show()
             } else {
-                // Success! Show the summary.
                 showSummaryDialog(mail, summary)
             }
 
-            mailBeingProcessed = null // Clear the processed mail
+            mailBeingProcessed = null
         }
         mailViewModel.isGeneratingReply.observe(viewLifecycleOwner) { isGenerating ->
             if (isGenerating) {
@@ -239,18 +219,16 @@ class MailFragment : Fragment() {
             if (reply != null) {
                 val originalSender = mailBeingProcessed?.senderEmail
                 if (originalSender != null) {
-                    // Success! Show the compose dialog with pre-filled data
                     showComposeDialog(originalSender, reply.subject, reply.body)
                 }
-                mailBeingProcessed = null // Clear
+                mailBeingProcessed = null
             }
         }
 
         mailViewModel.replyError.observe(viewLifecycleOwner) { error ->
             if (error != null) {
-                // Show error toast
                 Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
-                mailBeingProcessed = null // Clear
+                mailBeingProcessed = null
             }
         }
     }
@@ -272,7 +250,7 @@ class MailFragment : Fragment() {
 
         val dialog = MaterialAlertDialogBuilder(requireContext())
             .setView(dialogBinding.root)
-            .setPositiveButton("Send", null) // Will be overridden
+            .setPositiveButton("Send", null)
             .setNegativeButton("Cancel") { d, _ -> d.dismiss() }
             .create()
 
@@ -283,7 +261,6 @@ class MailFragment : Fragment() {
                 val subject = dialogBinding.subjectEdit.text.toString().trim()
                 val body = dialogBinding.bodyEdit.text.toString()
 
-                // --- ADD THIS VALIDATION ---
                 if (recipient.isEmpty()) {
                     Toast.makeText(requireContext(), "Recipient email cannot be empty.", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
@@ -292,23 +269,19 @@ class MailFragment : Fragment() {
                     Toast.makeText(requireContext(), "Subject cannot be empty.", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
-                // --- END OF ADDITION ---
 
-                // Observe sendMailStatus for this specific send action
                 val statusObserver = object : Observer<String?> {
                     override fun onChanged(errorMessage: String?) {
                         if (errorMessage != null) {
                             Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show()
                         } else {
-                            dialog.dismiss() // Only dismiss on success
+                            dialog.dismiss()
                         }
-                        // Remove observer after handling to prevent multiple triggers
                         mailViewModel.sendMailStatus.removeObserver(this)
                     }
                 }
                 mailViewModel.sendMailStatus.observe(viewLifecycleOwner, statusObserver)
 
-                // Trigger the send mail action
                 mailViewModel.sendMail(user.email, recipient, subject, body)
             }
             val cancelButton = dialog.getButton(DialogInterface.BUTTON_NEGATIVE)
@@ -318,22 +291,17 @@ class MailFragment : Fragment() {
         dialog.show()
     }
 
-    /**
-     * This is the updated function that shows the custom dialog.
-     */
+
     private fun showMailOptionsDialog(mail: Mail) {
-        // Inflate the custom layout
         val dialogBinding = DialogMailOptionsBinding.inflate(layoutInflater)
 
         dialogBinding.mailOptionsTitle.text = "Subject: ${mail.subject.ifEmpty { "(No Subject)" }}"
 
-        // Create the dialog
         val dialog = MaterialAlertDialogBuilder(requireContext())
             .setView(dialogBinding.root)
             .setNegativeButton("Cancel", null)
             .create()
 
-        // Set click listeners for the buttons
         dialogBinding.buttonRead.setOnClickListener {
             mailViewModel.markMailAsRead(mail)
             showMailDetailsDialog(mail)
@@ -342,24 +310,21 @@ class MailFragment : Fragment() {
 
         dialogBinding.buttonReplyAi.setOnClickListener {
             mailViewModel.markMailAsRead(mail)
-            mailBeingProcessed = mail // Store the mail
-            mailViewModel.generateReply(mail) // Call the new function
+            mailBeingProcessed = mail
+            mailViewModel.generateReply(mail)
             dialog.dismiss()
         }
 
         dialogBinding.buttonSummarize.setOnClickListener {
             mailViewModel.markMailAsRead(mail)
-            mailBeingProcessed = mail // Store the mail
-            mailViewModel.summarizeMail(mail.body) // Start the API call
+            mailBeingProcessed = mail
+            mailViewModel.summarizeMail(mail.body)
             dialog.dismiss()
         }
 
         dialog.show()
     }
 
-    /**
-     * This function is now called by the "Read" option.
-     */
     private fun showMailDetailsDialog(mail: Mail) {
         val title = mail.subject.ifEmpty { "(No Subject)" }
         val from = mail.senderEmail
@@ -379,7 +344,6 @@ class MailFragment : Fragment() {
         val from = mail.senderEmail
         val to = mail.recipientEmail
 
-        // Format the message with the summary
         val message = "From: $from\nTo: $to\n\n--- AI Summary ---\n\n$summary"
 
         MaterialAlertDialogBuilder(requireContext())
@@ -389,12 +353,9 @@ class MailFragment : Fragment() {
             .show()
     }
 
-    /**
-     * Shows a simple, non-cancelable loading dialog.
-     */
     private fun showLoadingDialog(message: String) {
         if (loadingDialog != null && loadingDialog!!.isShowing) {
-            return // Don't show multiple
+            return
         }
         loadingDialog = MaterialAlertDialogBuilder(requireContext())
             .setMessage(message)
@@ -402,9 +363,6 @@ class MailFragment : Fragment() {
             .show()
     }
 
-    /**
-     * Dismisses the loading dialog.
-     */
     private fun dismissLoadingDialog() {
         loadingDialog?.dismiss()
         loadingDialog = null

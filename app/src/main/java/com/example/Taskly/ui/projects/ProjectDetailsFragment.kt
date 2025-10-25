@@ -1,16 +1,16 @@
 package com.example.Taskly.ui.projects
 
-import android.app.TimePickerDialog // Import TimePickerDialog
+import android.app.TimePickerDialog
 import android.content.DialogInterface
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter // Import ArrayAdapter
-import android.widget.EditText // Import EditText
-import android.widget.Spinner // Import Spinner
-import android.widget.TextView // Import TextView
+import android.widget.ArrayAdapter
+import android.widget.EditText
+import android.widget.Spinner
+import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -27,14 +27,14 @@ import com.example.Taskly.ui.login.LoginViewModel
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.lifecycle.lifecycleScope
-import com.example.Taskly.ui.calendar.Event // Make sure Event is imported
-import com.google.android.material.textfield.TextInputEditText // Import TextInputEditText
-import kotlinx.coroutines.Dispatchers // Import Dispatchers
+import com.example.Taskly.ui.calendar.Event
+import com.google.android.material.textfield.TextInputEditText
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat // Import SimpleDateFormat
-import java.util.Calendar // Import Calendar
+import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
-import java.util.Locale // Import Locale
+import java.util.Locale
 
 class ProjectDetailsFragment : Fragment() {
 
@@ -46,7 +46,7 @@ class ProjectDetailsFragment : Fragment() {
     private val loginViewModel: LoginViewModel by activityViewModels()
 
     private lateinit var eventAdapter: EventAdapter
-    private var userProjects: List<Project> = emptyList() // To hold projects for the spinner
+    private var userProjects: List<Project> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -60,7 +60,7 @@ class ProjectDetailsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        fetchUserProjects() // Fetch projects for the spinner
+        fetchUserProjects()
         setupHeader()
         setupRecyclerView()
         setupObservers()
@@ -112,7 +112,7 @@ class ProjectDetailsFragment : Fragment() {
                             Toast.LENGTH_SHORT
                         ).show()
                     } catch (e: Exception) {
-                        Log.e("ProjectDetails", "Error updating event", e) // Log tag updated
+                        Log.e("ProjectDetails", "hmmmmmmm", e)
                         Toast.makeText(requireContext(), "Error updating task", Toast.LENGTH_SHORT).show()
                     }
                 }
@@ -120,7 +120,6 @@ class ProjectDetailsFragment : Fragment() {
             onEventDeleteClick = { event ->
                 showDeleteConfirmationDialog(event)
             },
-            // Call the new edit dialog function
             onEventEditClick = { event ->
                 showEditEventDialog(event)
             }
@@ -160,15 +159,12 @@ class ProjectDetailsFragment : Fragment() {
         }
         viewModel.isLoadingAi.observe(viewLifecycleOwner) { isLoading ->
             if (isLoading) {
-                // Optional: You could show a loading spinner here
                 Log.d("ProjectDetails", "AI is generating a suggestion...")
             }
         }
         viewModel.aiEventSuggestion.observe(viewLifecycleOwner) { suggestion ->
             if (suggestion != null) {
-                // AI has a suggestion, show the dialog
                 showAiSuggestionDialog(suggestion)
-                // Clear the suggestion so it doesn't re-show on rotation
                 viewModel.clearAiSuggestion()
             }
         }
@@ -198,7 +194,7 @@ class ProjectDetailsFragment : Fragment() {
         }
     }
     private fun addNewEvent(title: String, description: String, startTime: Date, endTime: Date, date: Date, projectId: Int?) {
-        val currentUser = loginViewModel.loggedInUser.value ?: return // Safety check
+        val currentUser = loginViewModel.loggedInUser.value ?: return
 
         val event = Event(
             ownerEmail = currentUser.email,
@@ -217,7 +213,6 @@ class ProjectDetailsFragment : Fragment() {
                 val newEvent = event.copy(id = newId.toInt())
                 NotificationScheduler.scheduleNotification(requireContext(), newEvent)
                 Toast.makeText(requireContext(), "Event added successfully!", Toast.LENGTH_SHORT).show()
-                // The LiveData will refresh the list automatically
             } catch (e: Exception) {
                 Log.e("ProjectDetails", "Error adding event", e)
                 Toast.makeText(requireContext(), "Error adding event", Toast.LENGTH_SHORT).show()
@@ -225,7 +220,6 @@ class ProjectDetailsFragment : Fragment() {
         }
     }
 
-    // ADDED: Dialog to show the AI's suggestion
     private fun showAiSuggestionDialog(suggestion: AiEventSuggestion) {
         val message = """
         AI Suggestion:
@@ -265,35 +259,30 @@ class ProjectDetailsFragment : Fragment() {
                             set(Calendar.MINUTE, endCalTime.get(Calendar.MINUTE))
                         }
 
-                        // Check if end time is before start time (e.g., AI suggests an overnight event)
                         if (endCalendar.before(startCalendar)) {
-                            // Assume it ends the next day
                             endCalendar.add(Calendar.DAY_OF_YEAR, 1)
                         }
 
-                        // Add the event
                         addNewEvent(
                             title = suggestion.title,
                             description = suggestion.description,
                             startTime = startCalendar.time,
-                            endTime = endCalendar.time, // Use parsed end time
-                            date = startCalendar.time, // 'date' and 'startTime' date are the same
+                            endTime = endCalendar.time,
+                            date = startCalendar.time,
                             projectId = args.projectId
                         )
                     } else {
                         Toast.makeText(requireContext(), "Error: Could not parse AI date/time", Toast.LENGTH_SHORT).show()
                     }
                 } catch (e: Exception) {
-                    Log.e("ProjectDetails", "Error parsing AI date/time", e)
+                    Log.e("ProjectDetails", "idő mint a tenger", e)
                     Toast.makeText(requireContext(), "Error adding event: Invalid date format from AI", Toast.LENGTH_LONG).show()
                 }
             }
             .show()
     }
 
-    // --- START: ADDED EDIT EVENT DIALOG LOGIC ---
     private fun showEditEventDialog(eventToEdit: Event) {
-        // Inflate the same dialog used for adding events
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_event, null, false)
         val dialogHeader = dialogView.findViewById<TextView>(R.id.dialogHeaderTitle)
         val titleEdit = dialogView.findViewById<EditText>(R.id.eventTitleEdit)
@@ -303,9 +292,8 @@ class ProjectDetailsFragment : Fragment() {
         val projectSpinner = dialogView.findViewById<Spinner>(R.id.projectSpinner)
         val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
-        dialogHeader.text = "Edit Event" // Set title
+        dialogHeader.text = "Edit Event"
 
-        // Setup Spinner
         val projectNames = mutableListOf("No Project")
         projectNames.addAll(userProjects.map { it.name })
         val spinnerAdapter = ArrayAdapter(
@@ -316,21 +304,17 @@ class ProjectDetailsFragment : Fragment() {
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         projectSpinner.adapter = spinnerAdapter
 
-        // Initialize time calendars
         val startCalendar = Calendar.getInstance().apply { time = eventToEdit.startTime }
         val endCalendar = Calendar.getInstance().apply { time = eventToEdit.endTime }
 
-        // Pre-populate fields
         titleEdit.setText(eventToEdit.title)
         descEdit.setText(eventToEdit.description)
         startTimeEdit.setText(timeFormat.format(startCalendar.time))
         endTimeEdit.setText(timeFormat.format(endCalendar.time))
 
-        // Set spinner selection
         val projectIndex = userProjects.indexOfFirst { it.id == eventToEdit.projectId }
         projectSpinner.setSelection(if (projectIndex != -1) projectIndex + 1 else 0)
 
-        // Set up time picker listeners
         startTimeEdit.setOnClickListener {
             showTimePickerDialog(startCalendar) { newCalendar ->
                 startCalendar.time = newCalendar.time
@@ -346,7 +330,7 @@ class ProjectDetailsFragment : Fragment() {
 
         val dialog = MaterialAlertDialogBuilder(requireContext())
             .setView(dialogView)
-            .setPositiveButton("Save", null) // Use null listener initially
+            .setPositiveButton("Save", null)
             .setNegativeButton("Cancel") { d, _ -> d.dismiss() }
             .create()
 
@@ -361,28 +345,25 @@ class ProjectDetailsFragment : Fragment() {
                     return@setOnClickListener
                 }
 
-                // Get Project ID from Spinner
                 val selectedSpinnerPosition = projectSpinner.selectedItemPosition
                 val selectedProjectId: Int? = if (selectedSpinnerPosition == 0) {
-                    null // "No Project" selected
+                    null
                 } else {
                     userProjects[selectedSpinnerPosition - 1].id
                 }
 
-                // Ensure end time is after start time
                 if (endCalendar.after(startCalendar)) {
-                    // Create the updated event object
-                    // IMPORTANT: Preserve the original event's date, only update time
+
                     val originalDateCalendar = Calendar.getInstance().apply { time = eventToEdit.date }
                     val startTimeWithOriginalDate = Calendar.getInstance().apply {
-                        time = originalDateCalendar.time // Start with original date
+                        time = originalDateCalendar.time
                         set(Calendar.HOUR_OF_DAY, startCalendar.get(Calendar.HOUR_OF_DAY))
                         set(Calendar.MINUTE, startCalendar.get(Calendar.MINUTE))
                         set(Calendar.SECOND, 0)
                         set(Calendar.MILLISECOND, 0)
                     }
                     val endTimeWithOriginalDate = Calendar.getInstance().apply {
-                        time = originalDateCalendar.time // Start with original date
+                        time = originalDateCalendar.time
                         set(Calendar.HOUR_OF_DAY, endCalendar.get(Calendar.HOUR_OF_DAY))
                         set(Calendar.MINUTE, endCalendar.get(Calendar.MINUTE))
                         set(Calendar.SECOND, 0)
@@ -393,14 +374,12 @@ class ProjectDetailsFragment : Fragment() {
                     val updatedEvent = eventToEdit.copy(
                         title = title,
                         description = description,
-                        startTime = startTimeWithOriginalDate.time, // Use time combined with original date
-                        endTime = endTimeWithOriginalDate.time,   // Use time combined with original date
+                        startTime = startTimeWithOriginalDate.time,
+                        endTime = endTimeWithOriginalDate.time,
                         projectId = selectedProjectId
-                        // date field remains unchanged from eventToEdit
                     )
 
-                    // Launch coroutine to update
-                    updateEvent(updatedEvent) // Call the existing update function
+                    updateEvent(updatedEvent)
                     dialog.dismiss()
 
                 } else {
@@ -422,7 +401,6 @@ class ProjectDetailsFragment : Fragment() {
                 NotificationScheduler.cancelNotification(requireContext(), event)
                 NotificationScheduler.scheduleNotification(requireContext(), event)
                 Toast.makeText(requireContext(), "Event updated!", Toast.LENGTH_SHORT).show()
-                // LiveData should update the list automatically, no need to manually refresh
             } catch (e: Exception) {
                 Log.e("ProjectDetails", "Error updating event", e)
                 Toast.makeText(requireContext(), "Error updating event", Toast.LENGTH_SHORT).show()
@@ -430,8 +408,6 @@ class ProjectDetailsFragment : Fragment() {
         }
     }
 
-
-    // Helper function for time pickers
     private fun showTimePickerDialog(
         calendar: Calendar,
         onTimeSet: (Calendar) -> Unit
@@ -448,11 +424,10 @@ class ProjectDetailsFragment : Fragment() {
             },
             calendar.get(Calendar.HOUR_OF_DAY),
             calendar.get(Calendar.MINUTE),
-            true // 24-hour format
+            true
         )
         timePickerDialog.show()
     }
-    // --- END: ADDED EDIT EVENT DIALOG LOGIC ---
 
     override fun onDestroyView() {
         super.onDestroyView()

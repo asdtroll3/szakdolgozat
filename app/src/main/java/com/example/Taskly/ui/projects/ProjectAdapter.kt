@@ -30,27 +30,25 @@ class ProjectAdapter(
 
         private val context: Context = binding.root.context
 
-        fun bind(projectWithCount: ProjectWithCount) { // Expect ProjectWithCount
+        fun bind(projectWithCount: ProjectWithCount) {
             val project = projectWithCount.project
             val count = projectWithCount.eventCount
 
             binding.projectName.text = project.name
-            binding.projectTaskCount.text = count.toString() // Set the dynamic count
+            binding.projectTaskCount.text = count.toString()
             binding.root.setOnClickListener {
-                onProjectClick(projectWithCount) // Pass the original project
+                onProjectClick(projectWithCount)
             }
 
-            // --- Dynamically set the icon ---
             val iconResId = context.resources.getIdentifier(
                 project.iconName,
                 "drawable",
                 context.packageName
             )
 
-            if (iconResId != 0) { // 0 means not found
+            if (iconResId != 0) {
                 binding.projectIcon.setImageResource(iconResId)
             } else {
-                // Fallback to a default icon if not found
                 binding.projectIcon.setImageResource(
                     context.resources.getIdentifier(
                         "ic_home_project",

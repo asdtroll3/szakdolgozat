@@ -35,10 +35,8 @@ class ProjectDetailsViewModel : ViewModel() {
 
     private val eventDao = App.database.eventDao()
 
-    // Holds the current project ID and user for fetching
     private val _requestData = MutableLiveData<Pair<Int, User>>()
 
-    // LiveData for the events, automatically updated when _requestData changes
     val projectEvents: LiveData<List<Event>> = _requestData.switchMap { (projectId, user) ->
         eventDao.getEventsForProject(projectId, user.email)
     }
@@ -56,19 +54,17 @@ class ProjectDetailsViewModel : ViewModel() {
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
-    // Function to trigger loading events for a specific project and user
     fun loadEvents(projectId: Int, user: User) {
         _requestData.value = Pair(projectId, user)
     }
     fun clearAiSuggestion() {
-        _aiEventSuggestion.value = null // Use setValue as this should be called on main thread
+        _aiEventSuggestion.value = null
     }
     fun triggerAiSuggestion(events: List<Event>) {
-        if (aiSuggestionTriggered || events.size < 3) return // Don't run if already triggered or not enough events
+        if (aiSuggestionTriggered || events.size < 3) return
         aiSuggestionTriggered = true
         _isLoadingAi.postValue(true)
 
-        // Format the prompt
         val eventListString = events.joinToString("\n") {
             "- Title: ${it.title}, Date: ${dateFormat.format(it.date)}, Start: ${timeFormat.format(it.startTime)}, Description: ${it.description.take(50)}..."
         }
@@ -94,18 +90,14 @@ class ProjectDetailsViewModel : ViewModel() {
                     val lastBrace = jsonString.lastIndexOf('}')
 
                     if (firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace) {
-                        // Extract the substring between the braces
                         jsonString = jsonString.substring(firstBrace, lastBrace + 1)
-                        Log.d("ProjectDetailsVM", "Cleaned JSON String: $jsonString") // Log cleaned string
+                        Log.d("ProjectDetailsVM", "Cleaned JSON String: $jsonString")
                     } else {
-                        // If braces aren't found correctly, log an error
-                        Log.e("ProjectDetailsVM", "Could not find valid JSON object braces in raw response: $result")
-                        // Attempt parsing the original string anyway, it might be correct already or will fail predictably
+                        Log.e("ProjectDetailsVM", "jaayson: $result")
+
                         jsonString = result
                     }
-                    // *************************************
 
-                    // Parse the potentially cleaned jsonString
                     val json = JSONObject(jsonString)
                     val suggestion = AiEventSuggestion(
                         title = json.getString("title"),
@@ -116,11 +108,11 @@ class ProjectDetailsViewModel : ViewModel() {
                     )
                     _aiEventSuggestion.postValue(suggestion)
                 } catch (e: Exception) {
-                    Log.e("ProjectDetailsVM", "Error parsing AI response: $result", e)
-                    _aiEventSuggestion.postValue(null) // Failed parsing
+                    Log.e("ProjectDetailsVM", "errror: $result", e)
+                    _aiEventSuggestion.postValue(null)
                 }
             } else {
-                _aiEventSuggestion.postValue(null) // Failed API call
+                _aiEventSuggestion.postValue(null) //API
             }
             _isLoadingAi.postValue(false)
         }
@@ -168,11 +160,11 @@ class ProjectDetailsViewModel : ViewModel() {
                 val content = candidates.getJSONObject(0).getJSONObject("content")
                 val parts = content.getJSONArray("parts")
                 if (parts.length() > 0) {
-                    parts.getJSONObject(0).getString("text").trim() // This should be the JSON string
+                    parts.getJSONObject(0).getString("text").trim()
                 } else { null }
             } else { null }
         } catch (e: Exception) {
-            Log.e("ProjectDetailsVM", "Error parsing wrapper: ${e.message}", e)
+            Log.e("ProjectDetailsVM", "wrapper hiba: ${e.message}", e)
             null
         }
     }

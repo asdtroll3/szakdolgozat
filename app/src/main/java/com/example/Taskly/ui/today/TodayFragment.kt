@@ -1,8 +1,10 @@
 package com.example.Taskly.ui.today
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
@@ -16,7 +18,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import android.app.TimePickerDialog
+import android.content.Context
 import android.content.DialogInterface
+import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
 import android.widget.Spinner
 import java.text.SimpleDateFormat
@@ -49,7 +53,6 @@ class TodayFragment : Fragment() {
     private lateinit var chatDisplay: TextView
     private lateinit var chatScrollView: ScrollView
 
-    // Views for today's events
     private lateinit var todayEventsRecyclerView: RecyclerView
     private lateinit var noEventsTextView: TextView
     private lateinit var eventAdapter: EventAdapter
@@ -63,7 +66,7 @@ class TodayFragment : Fragment() {
     private var userProjects: List<Project> = emptyList()
 
     data class ChatMessage(
-        val role: String, // "user" or "model"
+        val role: String,
         val content: String
     )
 
@@ -75,6 +78,7 @@ class TodayFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_today, container, false)
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -89,13 +93,19 @@ class TodayFragment : Fragment() {
                 userProjects = emptyList()
             }
         }
+        view.setOnTouchListener { v, event ->
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                hideKeyboard()
+            }
+            false
+        }
     }
     private fun fetchUserProjects(email: String) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 userProjects = App.database.projectDao().getProjectsForUserList(email)
             } catch (e: Exception) {
-                Log.e("TodayFragment", "Error fetching projects", e)
+                Log.e("TodayFragment", "projekt", e)
                 userProjects = emptyList()
             }
         }
@@ -103,7 +113,6 @@ class TodayFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        // Load events every time the fragment is shown to keep the list up-to-date
         loadTodayEvents()
     }
 
@@ -113,17 +122,14 @@ class TodayFragment : Fragment() {
         chatDisplay = view.findViewById(R.id.text_today)
         chatScrollView = view.findViewById(R.id.chatScrollView)
 
-        // Initialize new views
         todayEventsRecyclerView = view.findViewById(R.id.todayEventsRecyclerView)
         noEventsTextView = view.findViewById(R.id.noEventsTextView)
     }
 
     private fun setupRecyclerView() {
-        // Reuse the existing EventAdapter
         eventAdapter = EventAdapter(
             showDate = false,
             onEventCheckedChange = { event, isChecked ->
-                // ... (this logic is unchanged)
                 event.isCompleted = isChecked
                 lifecycleScope.launch {
                     try {
@@ -134,7 +140,7 @@ class TodayFragment : Fragment() {
                             Toast.LENGTH_SHORT
                         ).show()
                     } catch (e: Exception) {
-                        Log.e("TodayFragment", "Error updating event", e)
+                        //Log.e("TodayFragment", "", e)
                         Toast.makeText(requireContext(), "Error updating task", Toast.LENGTH_SHORT).show()
                     }
                 }
@@ -142,11 +148,14 @@ class TodayFragment : Fragment() {
             onEventDeleteClick = { event ->
                 showDeleteConfirmationDialog(event)
             },
-            // --- ADD THIS ---
             onEventEditClick = { event ->
                 showEditEventDialog(event)
+            },
+            onEventHelpClick = { event ->
+                val helpPrompt = "Help me with this task: \nTitle: ${event.title}\nDescription: ${event.description}"
+                userInput.setText(helpPrompt)
+                handleSendMessage()
             }
-            // ----------------
         )
         todayEventsRecyclerView.apply {
             layoutManager = LinearLayoutManager(context)
@@ -174,9 +183,9 @@ class TodayFragment : Fragment() {
                 NotificationScheduler.cancelNotification(requireContext(), event)
                 App.database.eventDao().deleteEvent(event)
                 Toast.makeText(requireContext(), "Event deleted", Toast.LENGTH_SHORT).show()
-                loadTodayEvents() // Refresh the list
+                loadTodayEvents()
             } catch (e: Exception) {
-                Log.e("TodayFragment", "Error deleting event", e)
+                Log.e("TodayFragment", "deleteEvent", e)
                 Toast.makeText(requireContext(), "Error deleting event", Toast.LENGTH_SHORT).show()
             }
         }
@@ -192,7 +201,6 @@ class TodayFragment : Fragment() {
         }
         lifecycleScope.launch {
             try {
-                // Get the start and end of the current day
                 val startOfDay = Calendar.getInstance().apply {
                     set(Calendar.HOUR_OF_DAY, 0)
                     set(Calendar.MINUTE, 0)
@@ -204,14 +212,13 @@ class TodayFragment : Fragment() {
                     set(Calendar.SECOND, 59)
                 }
 
-                // Query the database for events within today's range
                 val events = App.database.eventDao().getEventsByDateRange(
                     currentUser.email,
                     startOfDay.time,
                     endOfDay.time
                 )
 
-                // Update the UI on the main thread
+
                 withContext(Dispatchers.Main) {
                     if (events.isEmpty()) {
                         noEventsTextView.visibility = View.VISIBLE
@@ -223,7 +230,7 @@ class TodayFragment : Fragment() {
                     }
                 }
             } catch (e: Exception) {
-                Log.e("TodayFragment", "Error loading today's events", e)
+                Log.e("TodayFragment", "loadTodayEvents", e)
                 withContext(Dispatchers.Main) {
                     Toast.makeText(requireContext(), "Error loading events", Toast.LENGTH_SHORT).show()
                 }
@@ -245,6 +252,14 @@ class TodayFragment : Fragment() {
             }
         }
     }
+    private fun hideKeyboard() {
+        val view = activity?.currentFocus
+        if (view != null) {
+            val imm = activity?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.hideSoftInputFromWindow(view.windowToken, 0)
+            view.clearFocus()
+        }
+    }
 
     private fun scrollToBottom() {
         chatScrollView.post {
@@ -260,15 +275,13 @@ class TodayFragment : Fragment() {
             return
         }
 
-        // Add user message to history and display
         addMessageToChat("You", message)
         userInput.text.clear()
 
-        // Disable send button while processing
         sendButton.isEnabled = false
         sendButton.text = getString(R.string.sending)
 
-        // Send message to Gemini
+
         sendMessageToGemini(message)
     }
 
@@ -281,14 +294,12 @@ class TodayFragment : Fragment() {
         }
         chatDisplay.text = newText
 
-        // Scroll to bottom
         scrollToBottom()
     }
 
     private fun sendMessageToGemini(message: String) {
         lifecycleScope.launch {
             try {
-                // Add user message to chat history for context
                 chatHistory.add(ChatMessage("user", message))
 
                 val response = withContext(Dispatchers.IO) {
@@ -296,7 +307,6 @@ class TodayFragment : Fragment() {
                 }
 
                 response?.let { aiResponse ->
-                    // Add AI response to history and display
                     chatHistory.add(ChatMessage("model", aiResponse))
                     addMessageToChat("Gemini", aiResponse)
                 } ?: run {
@@ -306,7 +316,6 @@ class TodayFragment : Fragment() {
             } catch (e: Exception) {
                 addMessageToChat("System", "Error: ${e.message}")
             } finally {
-                // Re-enable send button
                 sendButton.isEnabled = true
                 sendButton.text = getString(R.string.send)
             }
@@ -316,7 +325,6 @@ class TodayFragment : Fragment() {
     private suspend fun makeApiCall(): String? {
         return withContext(Dispatchers.IO) {
             try {
-                // Build the request body from the entire chat history
                 val json = JSONObject().apply {
                     val contentsArray = JSONArray()
                     chatHistory.forEach { msg ->
@@ -341,7 +349,7 @@ class TodayFragment : Fragment() {
                     .post(requestBody)
                     .build()
 
-                client.newCall(request).execute().use { response -> // Use .use for automatic resource closing
+                client.newCall(request).execute().use { response ->
                     if (response.isSuccessful) {
                         val responseBody = response.body?.string()
                         responseBody?.let { parseGeminiResponse(it) }
@@ -409,11 +417,11 @@ class TodayFragment : Fragment() {
         )
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         projectSpinner.adapter = spinnerAdapter
-        // Create calendars for time pickers
+
         val startCalendar = Calendar.getInstance().apply { time = eventToEdit.startTime }
         val endCalendar = Calendar.getInstance().apply { time = eventToEdit.endTime }
 
-        // Pre-populate fields
+
         titleEdit.setText(eventToEdit.title)
         descEdit.setText(eventToEdit.description)
         startTimeEdit.setText(timeFormat.format(startCalendar.time))
@@ -422,7 +430,7 @@ class TodayFragment : Fragment() {
         val projectIndex = userProjects.indexOfFirst { it.id == eventToEdit.projectId }
         projectSpinner.setSelection(if (projectIndex != -1) projectIndex + 1 else 0)
 
-        // Time picker logic (same as in CalendarFragment)
+
         startTimeEdit.setOnClickListener {
             showTimePickerDialog(startCalendar) { newCalendar ->
                 startCalendar.time = newCalendar.time
@@ -438,7 +446,7 @@ class TodayFragment : Fragment() {
 
         val dialog = MaterialAlertDialogBuilder(requireContext())
             .setView(dialogView)
-            .setPositiveButton("Save", null) // Set button text
+            .setPositiveButton("Save", null)
             .setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
             .create()
 
@@ -454,37 +462,33 @@ class TodayFragment : Fragment() {
                 }
                 val selectedSpinnerPosition = projectSpinner.selectedItemPosition
                 val selectedProjectId: Int? = if (selectedSpinnerPosition == 0) {
-                    null // "No Project" selected
+                    null
                 } else {
                     userProjects[selectedSpinnerPosition - 1].id
                 }
 
-                // Ensure end time is after start time
+
                 if (endCalendar.after(startCalendar)) {
-                    // Create the updated event object
                     val updatedEvent = eventToEdit.copy(
                         title = title,
                         description = description,
                         startTime = startCalendar.time,
                         endTime = endCalendar.time,
                         projectId = selectedProjectId
-                        // Note: 'date' field from original event is preserved
                     )
 
-                    // Launch coroutine to update
                     lifecycleScope.launch {
                         try {
                             App.database.eventDao().updateEvent(updatedEvent)
 
-                            // Re-schedule notification
                             NotificationScheduler.cancelNotification(requireContext(), updatedEvent)
                             NotificationScheduler.scheduleNotification(requireContext(), updatedEvent)
 
                             Toast.makeText(requireContext(), "Event updated!", Toast.LENGTH_SHORT).show()
-                            loadTodayEvents() // Refresh the list
+                            loadTodayEvents()
                             dialog.dismiss()
                         } catch (e: Exception) {
-                            Log.e("TodayFragment", "Error updating event", e)
+                            Log.e("TodayFragment", "showEditEventDialog", e)
                             Toast.makeText(requireContext(), "Error updating event", Toast.LENGTH_SHORT).show()
                         }
                     }
@@ -502,7 +506,6 @@ class TodayFragment : Fragment() {
         dialog.show()
     }
 
-    // --- ADD THIS HELPER FUNCTION ---
     private fun showTimePickerDialog(
         calendar: Calendar,
         onTimeSet: (Calendar) -> Unit
@@ -519,13 +522,12 @@ class TodayFragment : Fragment() {
             },
             calendar.get(Calendar.HOUR_OF_DAY),
             calendar.get(Calendar.MINUTE),
-            true // 24-hour format
+            true
         )
         timePickerDialog.show()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // Clean up resources if needed
     }
 }

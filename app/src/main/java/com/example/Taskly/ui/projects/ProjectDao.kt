@@ -21,7 +21,6 @@ interface ProjectDao {
     @Query("SELECT * FROM project_table WHERE ownerEmail = :email ORDER BY name ASC")
     fun getProjectsForUser(email: String): LiveData<List<Project>>
 
-    // Added a non-LiveData version for use in spinners
     @Query("SELECT * FROM project_table WHERE ownerEmail = :email ORDER BY name ASC")
     suspend fun getProjectsForUserList(email: String): List<Project>
 }

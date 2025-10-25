@@ -10,5 +10,6 @@ data class User(
     @ColumnInfo(collate = ColumnInfo.NOCASE)
     val email: String,
     val username: String,
-    val password: String
+    val password: String,
+    val isDarkMode: Boolean = false
 )

@@ -16,6 +16,7 @@
             android:id="@+id/eventTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="?attr/colorOnSurface"
@@ -28,7 +29,7 @@
             android:id="@+id/eventDescription"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="22dp"
             android:textSize="14sp"
             android:textColor="?attr/colorOnSecondary"
             app:layout_constraintTop_toBottomOf="@id/eventTitle"
@@ -87,10 +88,23 @@
             app:tint="?attr/colorOnSecondary"
             android:padding="4dp"
             android:layout_marginEnd="8dp"
-            app:layout_constraintEnd_toStartOf="@id/deleteEventIcon"
+            app:layout_constraintEnd_toStartOf="@id/helpEventIcon"
             app:layout_constraintTop_toTopOf="@id/taskCheckBox"
             app:layout_constraintBottom_toBottomOf="@id/taskCheckBox"/>
 
+        <ImageView
+            android:id="@+id/helpEventIcon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_help"
+            android:contentDescription="Help with event"
+            app:tint="?attr/colorOnSecondary"
+            android:padding="4dp"
+            android:layout_marginEnd="8dp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toStartOf="@id/deleteEventIcon"
+            app:layout_constraintTop_toTopOf="@id/taskCheckBox"
+            app:layout_constraintBottom_toBottomOf="@id/taskCheckBox"/>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </com.google.android.material.card.MaterialCardView>

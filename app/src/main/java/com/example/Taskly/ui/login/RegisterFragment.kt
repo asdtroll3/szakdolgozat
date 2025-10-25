@@ -1,9 +1,13 @@
 package com.example.Taskly.ui.login
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
@@ -29,10 +33,11 @@ class RegisterFragment : Fragment() {
         return binding.root
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Hide the bottom navigation view by posting to the view's message queue
+        //ez buggos
         view.post {
             activity?.findViewById<BottomNavigationView>(R.id.nav_view)?.visibility = View.GONE
         }
@@ -48,24 +53,36 @@ class RegisterFragment : Fragment() {
                 return@setOnClickListener
             }
 
-            // Launch a coroutine to call the suspend function
             lifecycleScope.launch {
                 val errorMessage = loginViewModel.register(username, email, password, confirmPassword)
 
                 if (errorMessage == null) {
-                    // Success!
                     Toast.makeText(requireContext(), "Registration successful!", Toast.LENGTH_SHORT).show()
-                    findNavController().popBackStack() // Go back to the login screen
+                    findNavController().popBackStack()
                 } else {
-                    // Show the specific error message from the ViewModel
                     Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show()
                 }
             }
         }
 
         binding.backButton.setOnClickListener {
-            // Navigate back to the Login page
             findNavController().popBackStack()
+        }
+
+        view.setOnTouchListener { v, event ->
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                hideKeyboard()
+            }
+            false
+        }
+    }
+
+    private fun hideKeyboard() {
+        val view = activity?.currentFocus
+        if (view != null) {
+            val imm = activity?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.hideSoftInputFromWindow(view.windowToken, 0)
+            view.clearFocus()
         }
     }
 

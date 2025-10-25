@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.appcompat.app.AppCompatActivity
@@ -19,9 +20,9 @@ class MainActivity : AppCompatActivity() {
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
             if (isGranted) {
-                // Permission is granted. You can proceed with notifications.
+
             } else {
-                // Permission is denied. Handle accordingly (e.g., show a message).
+                Toast.makeText(this, "Permission denied. Event reminders will not be shown.", Toast.LENGTH_LONG).show()
             }
         }
 
@@ -40,14 +41,12 @@ class MainActivity : AppCompatActivity() {
 
     }
     private fun askNotificationPermission() {
-        // This is required only on API 33 (TIRAMISU) and higher
+        //API 33 felett
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
                 PackageManager.PERMISSION_GRANTED
             ) {
-                // Permission is already granted
             } else {
-                // Directly ask for the permission
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }

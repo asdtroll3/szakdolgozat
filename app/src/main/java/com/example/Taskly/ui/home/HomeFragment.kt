@@ -24,9 +24,8 @@ class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
-    // Get a reference to the shared LoginViewModel
     private val loginViewModel: LoginViewModel by activityViewModels()
-    // Get a reference to the HomeViewModel
+
     private val homeViewModel: HomeViewModel by viewModels()
 
     private lateinit var projectAdapter: ProjectAdapter
@@ -49,7 +48,7 @@ class HomeFragment : Fragment() {
     }
     override fun onResume() {
         super.onResume()
-        // Re-load projects to refresh counts when user returns to this screen
+        //ez kell reload
         loginViewModel.loggedInUser.value?.let { user ->
             homeViewModel.loadProjectsForUser(user.email)
         }
@@ -73,22 +72,21 @@ class HomeFragment : Fragment() {
         }
 
 
-        // Observe the login state
         loginViewModel.loggedInUser.observe(viewLifecycleOwner) { user ->
             if (user != null) {
                 binding.usernameText.text = "Hello, ${user.username}!"
                 binding.loginCard.visibility = View.GONE
-                // Load projects for the logged-in user
+
                 homeViewModel.loadProjectsForUser(user.email)
             } else {
                 binding.usernameText.text = "Not logged in"
                 binding.loginCard.visibility = View.VISIBLE
-                // Clear projects
+
                 homeViewModel.clearProjects()
             }
         }
 
-        // Observe the projects list
+
         homeViewModel.projects.observe(viewLifecycleOwner) { projectsWithCount ->
             projectAdapter.submitList(projectsWithCount)
         }
@@ -101,7 +99,7 @@ class HomeFragment : Fragment() {
     private fun setupRecyclerView() {
         projectAdapter = ProjectAdapter { projectWithCount ->
             val project = projectWithCount.project
-            // Check event count for AI suggestion
+
             val showSuggestion = projectWithCount.eventCount >= 3
             val action = HomeFragmentDirections.actionNavigationHomeToProjectDetailsFragment(
                 projectId = project.id,
@@ -110,7 +108,6 @@ class HomeFragment : Fragment() {
                 showAiSuggestion = showSuggestion
             )
             findNavController().navigate(action)
-            // --- ***************************** ---
         }
         binding.projectsRecyclerView.apply {
             layoutManager = LinearLayoutManager(context)
@@ -128,7 +125,7 @@ class HomeFragment : Fragment() {
 
         val dialogBinding = DialogAddProjectBinding.inflate(layoutInflater)
         val projectNameEdit = dialogBinding.projectNameEdit
-        val iconSpinner = dialogBinding.iconSpinner // Get the icon spinner
+        val iconSpinner = dialogBinding.iconSpinner
 
         val spinnerAdapter = IconSpinnerAdapter(requireContext(), availableIcons)
         iconSpinner.adapter = spinnerAdapter

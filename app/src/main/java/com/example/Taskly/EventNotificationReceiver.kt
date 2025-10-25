@@ -17,13 +17,13 @@ import com.example.Taskly.ui.login.LoginViewModel
 class EventNotificationReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        Log.d("EventReceiver", "onReceive triggered!")
+        Log.d("EventReceiver", "onreceive triggered")
 
         val ownerEmail = intent.getStringExtra("EXTRA_EVENT_OWNER_EMAIL")
         val currentEmail = App.sharedPreferences.getString(LoginViewModel.PREF_LOGGED_IN_EMAIL, null)
 
         if (ownerEmail == null || ownerEmail != currentEmail) {
-            Log.d("EventReceiver", "Skipping notification. Event owner ($ownerEmail) does not match logged in user ($currentEmail).")
+            Log.d("EventReceiver", "event owner: ($ownerEmail) logged in: ($currentEmail).")
             return
         }
 
@@ -32,13 +32,12 @@ class EventNotificationReceiver : BroadcastReceiver() {
         val description = intent.getStringExtra("EXTRA_EVENT_DESCRIPTION") ?: "Your event is starting soon."
         val customTitle = "$title is in 1 hour"
 
-        // Create an intent to open the app when the notification is tapped
         val openAppIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         val pendingIntent = PendingIntent.getActivity(
             context,
-            eventId, // Use event ID as request code to make it unique
+            eventId,
             openAppIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -47,24 +46,21 @@ class EventNotificationReceiver : BroadcastReceiver() {
             R.mipmap.ic_launcher_foreground
         )
 
-        // Build the notification
         val builder = NotificationCompat.Builder(context, EVENT_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_calendar)
             .setLargeIcon(largeIconBitmap)
             .setContentTitle(customTitle)
             .setContentText(description)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentIntent(pendingIntent) // Set the tap action
-            .setAutoCancel(true) // Dismiss notification on tap
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
 
-        // Check for notification permission before showing
         if (ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             with(NotificationManagerCompat.from(context)) {
-                // notificationId is a unique int for each notification
                 notify(eventId, builder.build())
             }
         }
