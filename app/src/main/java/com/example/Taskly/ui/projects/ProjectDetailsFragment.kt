@@ -33,6 +33,7 @@ import kotlinx.coroutines.Dispatchers // Import Dispatchers
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat // Import SimpleDateFormat
 import java.util.Calendar // Import Calendar
+import java.util.Date
 import java.util.Locale // Import Locale
 
 class ProjectDetailsFragment : Fragment() {
@@ -151,6 +152,24 @@ class ProjectDetailsFragment : Fragment() {
                 binding.projectEventsRecyclerView.visibility = View.VISIBLE
                 binding.noEventsTextProject.visibility = View.GONE
                 eventAdapter.submitList(events)
+
+                if (args.showAiSuggestion) {
+                    viewModel.triggerAiSuggestion(events)
+                }
+            }
+        }
+        viewModel.isLoadingAi.observe(viewLifecycleOwner) { isLoading ->
+            if (isLoading) {
+                // Optional: You could show a loading spinner here
+                Log.d("ProjectDetails", "AI is generating a suggestion...")
+            }
+        }
+        viewModel.aiEventSuggestion.observe(viewLifecycleOwner) { suggestion ->
+            if (suggestion != null) {
+                // AI has a suggestion, show the dialog
+                showAiSuggestionDialog(suggestion)
+                // Clear the suggestion so it doesn't re-show on rotation
+                viewModel.clearAiSuggestion()
             }
         }
     }
@@ -177,6 +196,99 @@ class ProjectDetailsFragment : Fragment() {
                 Toast.makeText(requireContext(), "Error deleting event", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+    private fun addNewEvent(title: String, description: String, startTime: Date, endTime: Date, date: Date, projectId: Int?) {
+        val currentUser = loginViewModel.loggedInUser.value ?: return // Safety check
+
+        val event = Event(
+            ownerEmail = currentUser.email,
+            title = title,
+            description = description,
+            date = date,
+            startTime = startTime,
+            endTime = endTime,
+            isCompleted = false,
+            projectId = projectId
+        )
+
+        lifecycleScope.launch {
+            try {
+                val newId = App.database.eventDao().insertEvent(event)
+                val newEvent = event.copy(id = newId.toInt())
+                NotificationScheduler.scheduleNotification(requireContext(), newEvent)
+                Toast.makeText(requireContext(), "Event added successfully!", Toast.LENGTH_SHORT).show()
+                // The LiveData will refresh the list automatically
+            } catch (e: Exception) {
+                Log.e("ProjectDetails", "Error adding event", e)
+                Toast.makeText(requireContext(), "Error adding event", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // ADDED: Dialog to show the AI's suggestion
+    private fun showAiSuggestionDialog(suggestion: AiEventSuggestion) {
+        val message = """
+        AI Suggestion:
+        
+        Title: ${suggestion.title}
+        Description: ${suggestion.description}
+        Date: ${suggestion.date}
+        Time: ${suggestion.startTime} - ${suggestion.endTime}
+        """.trimIndent()
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Add Suggested Event?")
+            .setMessage(message)
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Add Event") { _, _ ->
+                try {
+                    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+
+                    val baseDate = dateFormat.parse(suggestion.date)
+                    val startTimeParsed = timeFormat.parse(suggestion.startTime)
+                    val endTimeParsed = timeFormat.parse(suggestion.endTime)
+
+                    if (baseDate != null && startTimeParsed != null && endTimeParsed != null) {
+
+                        val startCalendar = Calendar.getInstance().apply {
+                            time = baseDate
+                            val startCalTime = Calendar.getInstance().apply { time = startTimeParsed }
+                            set(Calendar.HOUR_OF_DAY, startCalTime.get(Calendar.HOUR_OF_DAY))
+                            set(Calendar.MINUTE, startCalTime.get(Calendar.MINUTE))
+                        }
+
+                        val endCalendar = Calendar.getInstance().apply {
+                            time = baseDate
+                            val endCalTime = Calendar.getInstance().apply { time = endTimeParsed }
+                            set(Calendar.HOUR_OF_DAY, endCalTime.get(Calendar.HOUR_OF_DAY))
+                            set(Calendar.MINUTE, endCalTime.get(Calendar.MINUTE))
+                        }
+
+                        // Check if end time is before start time (e.g., AI suggests an overnight event)
+                        if (endCalendar.before(startCalendar)) {
+                            // Assume it ends the next day
+                            endCalendar.add(Calendar.DAY_OF_YEAR, 1)
+                        }
+
+                        // Add the event
+                        addNewEvent(
+                            title = suggestion.title,
+                            description = suggestion.description,
+                            startTime = startCalendar.time,
+                            endTime = endCalendar.time, // Use parsed end time
+                            date = startCalendar.time, // 'date' and 'startTime' date are the same
+                            projectId = args.projectId
+                        )
+                    } else {
+                        Toast.makeText(requireContext(), "Error: Could not parse AI date/time", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    Log.e("ProjectDetails", "Error parsing AI date/time", e)
+                    Toast.makeText(requireContext(), "Error adding event: Invalid date format from AI", Toast.LENGTH_LONG).show()
+                }
+            }
+            .show()
     }
 
     // --- START: ADDED EDIT EVENT DIALOG LOGIC ---

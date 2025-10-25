@@ -35,6 +35,10 @@
         <argument
             android:name="projectIconName"
             app:argType="string" />
+        <argument
+            android:name="showAiSuggestion"
+            app:argType="boolean"
+            android:defaultValue="false" />
     </fragment>
 
     <fragment

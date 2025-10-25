@@ -99,13 +99,15 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        projectAdapter = ProjectAdapter { project ->
-            // --- *** MODIFIED CLICK ACTION *** ---
-            // Navigate to ProjectDetailsFragment, passing arguments
+        projectAdapter = ProjectAdapter { projectWithCount ->
+            val project = projectWithCount.project
+            // Check event count for AI suggestion
+            val showSuggestion = projectWithCount.eventCount >= 3
             val action = HomeFragmentDirections.actionNavigationHomeToProjectDetailsFragment(
                 projectId = project.id,
                 projectName = project.name,
-                projectIconName = project.iconName
+                projectIconName = project.iconName,
+                showAiSuggestion = showSuggestion
             )
             findNavController().navigate(action)
             // --- ***************************** ---

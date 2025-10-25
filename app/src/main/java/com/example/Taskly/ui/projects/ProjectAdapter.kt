@@ -10,7 +10,7 @@ import com.example.Taskly.databinding.ItemProjectBinding
 import com.example.Taskly.ui.home.ProjectWithCount
 
 class ProjectAdapter(
-    private val onProjectClick: (Project) -> Unit
+    private val onProjectClick: (ProjectWithCount) -> Unit
 ) : ListAdapter<ProjectWithCount, ProjectAdapter.ProjectViewHolder>(ProjectDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ProjectViewHolder {
@@ -37,7 +37,7 @@ class ProjectAdapter(
             binding.projectName.text = project.name
             binding.projectTaskCount.text = count.toString() // Set the dynamic count
             binding.root.setOnClickListener {
-                onProjectClick(project) // Pass the original project
+                onProjectClick(projectWithCount) // Pass the original project
             }
 
             // --- Dynamically set the icon ---
