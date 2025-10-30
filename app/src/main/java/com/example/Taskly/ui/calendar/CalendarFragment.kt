@@ -1,16 +1,15 @@
 package com.example.Taskly.ui.calendar
 
+import android.annotation.SuppressLint
 import android.app.TimePickerDialog
+import android.content.Context
+import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
-import com.example.Taskly.databinding.FragmentCalendarBinding
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import android.content.DialogInterface
-import android.util.Log
+import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
@@ -18,57 +17,45 @@ import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.Taskly.R
-import com.example.Taskly.NotificationScheduler
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.*
-import com.example.Taskly.App
-import kotlinx.coroutines.*
-import androidx.lifecycle.lifecycleScope
+import com.example.Taskly.databinding.FragmentCalendarBinding
+import com.example.Taskly.ui.login.LoginViewModel
+import com.example.Taskly.ui.projects.Project
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.kizitonwose.calendar.core.CalendarDay
 import com.kizitonwose.calendar.core.DayPosition
 import com.kizitonwose.calendar.view.MonthDayBinder
 import com.kizitonwose.calendar.view.ViewContainer
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONArray
-import org.json.JSONObject
-import java.io.IOException
-import java.time.YearMonth
+import java.text.SimpleDateFormat
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.TextStyle
-import androidx.fragment.app.activityViewModels
-import com.example.Taskly.ui.login.LoginViewModel
-import com.example.Taskly.ui.projects.Project
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class CalendarFragment : Fragment() {
     private var _binding: FragmentCalendarBinding? = null
-    private var selectedDate: LocalDate = LocalDate.now()
     private val binding get() = _binding!!
+
     private lateinit var eventAdapter: EventAdapter
+    private var selectedDate: LocalDate = LocalDate.now()
+
+    private val viewModel: CalendarViewModel by viewModels()
+    private val loginViewModel: LoginViewModel by activityViewModels()
+
+    private var userProjects: List<Project> = emptyList()
 
     private lateinit var userInput: EditText
     private lateinit var sendButton: Button
     private lateinit var chatDisplay: TextView
     private lateinit var chatScrollView: ScrollView
-    private val chatHistory = mutableListOf<ChatMessage>()
-
-    private val client = OkHttpClient()
-    private val apiKey = "AIzaSyCtQ8vKKwdZsmKaesTfTO2l0FJ8CtTYzRQ"
-    private val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
-
-    data class ChatMessage(
-        val role: String,
-        val content: String
-    )
-
-    private val loginViewModel: LoginViewModel by activityViewModels()
-    private var userProjects: List<Project> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -79,25 +66,18 @@ class CalendarFragment : Fragment() {
         return binding.root
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        initializeChatViews(view)
         setupCalendarView()
         setupRecyclerView()
         setupAddEventButton()
-        loadEventsForSelectedDate()
-        updateEventsTitle(selectedDate)
-        initializeChatViews(view)
         setupChatListeners()
 
-        loginViewModel.loggedInUser.observe(viewLifecycleOwner) { user ->
-            if (user != null) {
-                fetchUserProjects(user.email)
-                loadEventsForSelectedDate()
-            } else {
-                userProjects = emptyList()
-                loadEventsForSelectedDate()
-            }
-        }
+        updateEventsTitle(selectedDate)
+        setupObservers()
 
         val currentMonth = YearMonth.now()
         val title = "${currentMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${currentMonth.year}"
@@ -107,15 +87,47 @@ class CalendarFragment : Fragment() {
             val title = "${month.yearMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${month.yearMonth.year}"
             binding.monthYearText.text = title
         }
-    }
-    private fun fetchUserProjects(email: String) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                userProjects = App.database.projectDao().getProjectsForUserList(email)
-            } catch (e: Exception) {
-                Log.e("CalendarFragment", "eeeee baj?", e)
-                userProjects = emptyList()
+        view.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                hideKeyboard()
             }
+            false
+        }
+    }
+
+    private fun setupObservers() {
+        loginViewModel.loggedInUser.observe(viewLifecycleOwner) { user ->
+            viewModel.setUserEmail(user?.email)
+        }
+
+        viewModel.eventsForSelectedDate.observe(viewLifecycleOwner) { events ->
+            if (events.isEmpty()) {
+                binding.eventsRecyclerView.visibility = View.GONE
+                binding.aiChatContainer.visibility = View.VISIBLE
+                binding.eventsTitle.visibility = View.GONE
+                binding.noEventsText.visibility = View.VISIBLE
+            } else {
+                binding.eventsRecyclerView.visibility = View.VISIBLE
+                binding.aiChatContainer.visibility = View.GONE
+                binding.eventsTitle.visibility = View.VISIBLE
+                binding.noEventsText.visibility = View.GONE
+                eventAdapter.submitList(events)
+            }
+        }
+
+        viewModel.projects.observe(viewLifecycleOwner) { projects ->
+            userProjects = projects
+        }
+
+        viewModel.chatHistory.observe(viewLifecycleOwner) { messages ->
+            val userName = loginViewModel.loggedInUser.value?.username ?: "You"
+
+            val chatText = messages.joinToString("\n\n") {
+                val prefix = if (it.role == "model") "Gemini" else userName
+                "$prefix: ${it.content}"
+            }
+            chatDisplay.text = chatText
+            chatScrollView.post { chatScrollView.fullScroll(View.FOCUS_DOWN) }
         }
     }
 
@@ -135,116 +147,11 @@ class CalendarFragment : Fragment() {
     private fun handleSendMessage() {
         val message = userInput.text.toString().trim()
         if (message.isNotEmpty()) {
-            addMessageToChat("You", message)
-            sendMessageToGemini(message)
+            viewModel.sendMessage(message)
             userInput.text.clear()
+            hideKeyboard()
         }
     }
-
-    private fun addMessageToChat(sender: String, message: String) {
-        val currentText = chatDisplay.text.toString()
-        chatDisplay.text = if (currentText.isEmpty()) "$sender: $message" else "$currentText\n\n$sender: $message"
-        chatScrollView.post { chatScrollView.fullScroll(View.FOCUS_DOWN) }
-    }
-
-
-    private fun sendMessageToGemini(message: String) {
-        lifecycleScope.launch {
-            try {
-                chatHistory.add(ChatMessage("user", message))
-
-                val response = withContext(Dispatchers.IO) {
-                    makeApiCall()
-                }
-
-                response?.let { aiResponse ->
-                    chatHistory.add(ChatMessage("model", aiResponse))
-                    addMessageToChat("Gemini", aiResponse)
-                } ?: run {
-                    addMessageToChat("System", "Sorry, I couldn't get a response. Please try again.")
-                }
-
-            } catch (e: Exception) {
-                addMessageToChat("System", "Error: ${e.message}")
-            }
-        }
-    }
-
-    private suspend fun makeApiCall(): String? {
-        return withContext(Dispatchers.IO) {
-            try {
-                val json = JSONObject().apply {
-                    val contentsArray = JSONArray()
-                    chatHistory.forEach { msg ->
-                        val content = JSONObject().apply {
-                            put("role", msg.role)
-                            val partsArray = JSONArray().apply {
-                                put(JSONObject().apply {
-                                    put("text", msg.content)
-                                })
-                            }
-                            put("parts", partsArray)
-                        }
-                        contentsArray.put(content)
-                    }
-                    put("contents", contentsArray)
-                }
-
-                val requestBody = json.toString().toRequestBody("application/json".toMediaType())
-
-                val request = Request.Builder()
-                    .url("$apiUrl?key=$apiKey")
-                    .post(requestBody)
-                    .build()
-
-                client.newCall(request).execute().use { response ->
-                    if (response.isSuccessful) {
-                        val responseBody = response.body?.string()
-                        responseBody?.let { parseGeminiResponse(it) }
-                    } else {
-                        "API Error: ${response.code} - ${response.message}"
-                    }
-                }
-
-            } catch (e: IOException) {
-                "Network error: ${e.message}"
-            } catch (e: Exception) {
-                "Unexpected error: ${e.message}"
-            }
-        }
-    }
-
-    private fun parseGeminiResponse(responseBody: String): String? {
-        return try {
-            val jsonResponse = JSONObject(responseBody)
-            val candidates = jsonResponse.getJSONArray("candidates")
-            if (candidates.length() > 0) {
-                val content = candidates.getJSONObject(0).getJSONObject("content")
-                val parts = content.getJSONArray("parts")
-                if (parts.length() > 0) {
-                    parts.getJSONObject(0).getString("text").trim()
-                } else {
-                    "No response text found."
-                }
-            } else {
-                val promptFeedback = jsonResponse.optJSONObject("promptFeedback")
-                if (promptFeedback != null) {
-                    val safetyRatings = promptFeedback.optJSONArray("safetyRatings")
-                    if (safetyRatings != null && safetyRatings.length() > 0) {
-                        val firstRating = safetyRatings.getJSONObject(0)
-                        "Blocked due to safety concerns: ${firstRating.getString("category")}"
-                    } else {
-                        "Response was empty. It might have been blocked."
-                    }
-                } else {
-                    "No candidates found in response."
-                }
-            }
-        } catch (e: Exception) {
-            "Error parsing response: ${e.message}"
-        }
-    }
-
 
     private fun updateEventsTitle(date: LocalDate) {
         val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
@@ -255,9 +162,7 @@ class CalendarFragment : Fragment() {
     }
 
     private fun getDayOfMonthSuffix(n: Int): String {
-        if (n in 11..13) {
-            return "th"
-        }
+        if (n in 11..13) return "th"
         return when (n % 10) {
             1 -> "st"
             2 -> "nd"
@@ -292,13 +197,12 @@ class CalendarFragment : Fragment() {
                         }
 
                         container.view.setOnClickListener {
-                            val previousSelection = selectedDate
-                            selectedDate = data.date
-                            updateEventsTitle(selectedDate)
-
-                            binding.calendarView.notifyCalendarChanged()
-
-                            updateEventsForDate(selectedDate)
+                            if (selectedDate != data.date) {
+                                selectedDate = data.date
+                                updateEventsTitle(selectedDate)
+                                binding.calendarView.notifyCalendarChanged()
+                                viewModel.setSelectedDate(selectedDate)
+                            }
                         }
                     }
                     DayPosition.InDate, DayPosition.OutDate -> {
@@ -307,21 +211,19 @@ class CalendarFragment : Fragment() {
                         container.view.background = null
 
                         container.view.setOnClickListener {
-                            val previousSelection = selectedDate
                             selectedDate = data.date
                             updateEventsTitle(selectedDate)
+                            viewModel.setSelectedDate(selectedDate)
 
                             if (data.position == DayPosition.InDate) {
-                                binding.calendarView.findFirstVisibleMonth()?.let { month ->
-                                    binding.calendarView.scrollToMonth(month.yearMonth.minusMonths(1))
+                                binding.calendarView.findFirstVisibleMonth()?.let {
+                                    binding.calendarView.scrollToMonth(it.yearMonth.minusMonths(1))
                                 }
                             } else {
-                                binding.calendarView.findFirstVisibleMonth()?.let { month ->
-                                    binding.calendarView.scrollToMonth(month.yearMonth.plusMonths(1))
+                                binding.calendarView.findFirstVisibleMonth()?.let {
+                                    binding.calendarView.scrollToMonth(it.yearMonth.plusMonths(1))
                                 }
                             }
-
-                            updateEventsForDate(selectedDate)
                         }
                     }
                 }
@@ -337,24 +239,12 @@ class CalendarFragment : Fragment() {
         eventAdapter = EventAdapter(
             showDate = false,
             onEventCheckedChange = { event, isChecked ->
-                event.isCompleted = isChecked
-                lifecycleScope.launch {
-                    try {
-                        App.database.eventDao().updateEvent(event)
-                        Toast.makeText(
-                            requireContext(),
-                            if (isChecked) "Task marked as completed!" else "Task marked as incomplete!",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    } catch (e: Exception) {
-                        Log.e("CalendarFragment", "recyclerview", e)
-                        Toast.makeText(
-                            requireContext(),
-                            "Error updating task",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
+                viewModel.updateEventCompletion(event, isChecked)
+                Toast.makeText(
+                    requireContext(),
+                    if (isChecked) "Task marked as completed!" else "Task marked as incomplete!",
+                    Toast.LENGTH_SHORT
+                ).show()
             },
             onEventDeleteClick = { event ->
                 showDeleteConfirmationDialog(event)
@@ -411,7 +301,6 @@ class CalendarFragment : Fragment() {
 
         val projectNames = mutableListOf("No Project")
         projectNames.addAll(userProjects.map { it.name })
-
         val spinnerAdapter = ArrayAdapter(
             requireContext(),
             android.R.layout.simple_spinner_item,
@@ -488,32 +377,16 @@ class CalendarFragment : Fragment() {
                 }
 
                 val startTime = Calendar.getInstance().apply {
-                    set(
-                        selectedDate.year,
-                        selectedDate.monthValue - 1,
-                        selectedDate.dayOfMonth,
-                        startCalendar.get(Calendar.HOUR_OF_DAY),
-                        startCalendar.get(Calendar.MINUTE),
-                        0
-                    )
+                    set(selectedDate.year, selectedDate.monthValue - 1, selectedDate.dayOfMonth, startCalendar.get(Calendar.HOUR_OF_DAY), startCalendar.get(Calendar.MINUTE), 0)
                 }
                 val endTime = Calendar.getInstance().apply {
-                    set(
-                        selectedDate.year,
-                        selectedDate.monthValue - 1,
-                        selectedDate.dayOfMonth,
-                        endCalendar.get(Calendar.HOUR_OF_DAY),
-                        endCalendar.get(Calendar.MINUTE),
-                        0
-                    )
+                    set(selectedDate.year, selectedDate.monthValue - 1, selectedDate.dayOfMonth, endCalendar.get(Calendar.HOUR_OF_DAY), endCalendar.get(Calendar.MINUTE), 0)
                 }
-
                 val selectedDateCalendar = Calendar.getInstance().apply {
                     set(selectedDate.year, selectedDate.monthValue - 1, selectedDate.dayOfMonth)
                 }
 
                 if (endTime.after(startTime)) {
-
                     if (isEditMode) {
                         val updatedEvent = eventToEdit!!.copy(
                             title = title,
@@ -523,9 +396,10 @@ class CalendarFragment : Fragment() {
                             endTime = endTime.time,
                             projectId = selectedProjectId
                         )
-                        updateEvent(updatedEvent)
+                        viewModel.updateEvent(updatedEvent)
+                        Toast.makeText(requireContext(), "Event updated!", Toast.LENGTH_SHORT).show()
                     } else {
-                        addNewEvent(
+                        viewModel.addNewEvent(
                             currentUser.email,
                             title,
                             description,
@@ -534,56 +408,17 @@ class CalendarFragment : Fragment() {
                             selectedDateCalendar.time,
                             selectedProjectId
                         )
+                        Toast.makeText(requireContext(), "Event added!", Toast.LENGTH_SHORT).show()
                     }
                     dialog.dismiss()
                 } else {
-                    Toast.makeText(
-                        requireContext(),
-                        "End time must be after start time",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(requireContext(), "End time must be after start time", Toast.LENGTH_SHORT).show()
                 }
             }
             val cancelButton = dialog.getButton(DialogInterface.BUTTON_NEGATIVE)
             cancelButton.setTextColor(requireContext().getColor(android.R.color.darker_gray))
         }
         dialog.show()
-    }
-
-    private fun addNewEvent(ownerEmail: String, title: String, description: String, startTime: Date, endTime: Date, date: Date, projectId: Int?) {
-        val event = Event(
-            ownerEmail = ownerEmail,
-            title = title,
-            description = description,
-            date = date,
-            startTime = startTime,
-            endTime = endTime,
-            isCompleted = false,
-            projectId = projectId
-        )
-
-        lifecycleScope.launch {
-            try {
-                val newId = App.database.eventDao().insertEvent(event)
-                val newEvent = event.copy(id = newId.toInt())
-
-                NotificationScheduler.scheduleNotification(requireContext(), newEvent)
-
-                loadEventsForSelectedDate()
-                Toast.makeText(
-                    requireContext(),
-                    "Event added successfully!",
-                    Toast.LENGTH_SHORT
-                ).show()
-            } catch (e: Exception) {
-                Log.e("CalendarFragment", "addnewevent", e)
-                Toast.makeText(
-                    requireContext(),
-                    "Error adding event",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
     }
 
     private fun showDeleteConfirmationDialog(event: Event) {
@@ -594,102 +429,19 @@ class CalendarFragment : Fragment() {
                 dialog.dismiss()
             }
             .setPositiveButton("Delete") { dialog, _ ->
-                deleteEvent(event)
+                viewModel.deleteEvent(event)
+                Toast.makeText(requireContext(), "Event deleted", Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
             }
             .show()
     }
-
-    private fun deleteEvent(event: Event) {
-        lifecycleScope.launch {
-            try {
-                NotificationScheduler.cancelNotification(requireContext(), event)
-                App.database.eventDao().deleteEvent(event)
-                Toast.makeText(requireContext(), "Event deleted", Toast.LENGTH_SHORT).show()
-                loadEventsForSelectedDate()
-            } catch (e: Exception) {
-                Log.e("CalendarFragment", "ilyen nem kene tortenjen", e)
-                Toast.makeText(requireContext(), "Error deleting event", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-
-    private fun loadEventsForSelectedDate() {
-        updateEventsForDate(selectedDate)
-    }
-    private fun updateEvent(event: Event) {
-        lifecycleScope.launch {
-            try {
-                App.database.eventDao().updateEvent(event)
-
-                //notifikacio cuccli
-                NotificationScheduler.cancelNotification(requireContext(), event)
-                NotificationScheduler.scheduleNotification(requireContext(), event)
-
-                loadEventsForSelectedDate()
-                Toast.makeText(
-                    requireContext(),
-                    "Event updated successfully!",
-                    Toast.LENGTH_SHORT
-                ).show()
-            } catch (e: Exception) {
-                Log.e("CalendarFragment", "updateEvent", e)
-                Toast.makeText(
-                    requireContext(),
-                    "Error updating event",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-    }
-
-    private fun updateEventsForDate(selectedDate: LocalDate) {
-        val currentUser = loginViewModel.loggedInUser.value
-        if (currentUser == null) {
-            eventAdapter.submitList(emptyList())
-            binding.noEventsText.visibility = View.VISIBLE
-            binding.eventsRecyclerView.visibility = View.GONE
-            binding.aiChatContainer.visibility = View.VISIBLE
-            binding.eventsTitle.visibility = View.GONE
-            return
-        }
-        lifecycleScope.launch {
-            try {
-                val startOfDay = Calendar.getInstance().apply {
-                    set(selectedDate.year, selectedDate.monthValue - 1, selectedDate.dayOfMonth, 0, 0, 0)
-                }
-
-                val endOfDay = Calendar.getInstance().apply {
-                    set(selectedDate.year, selectedDate.monthValue - 1, selectedDate.dayOfMonth, 23, 59, 59)
-                }
-
-                val events = App.database.eventDao().getEventsByDateRange(
-                    currentUser.email,
-                    startOfDay.time,
-                    endOfDay.time
-                )
-                if (events.isEmpty()) {
-                    binding.eventsRecyclerView.visibility = View.GONE
-                    binding.aiChatContainer.visibility = View.VISIBLE
-                    binding.eventsTitle.visibility = View.GONE
-                    binding.noEventsText.visibility = View.VISIBLE
-                } else {
-                    binding.eventsRecyclerView.visibility = View.VISIBLE
-                    binding.aiChatContainer.visibility = View.GONE
-                    binding.eventsTitle.visibility = View.VISIBLE
-                    binding.noEventsText.visibility = View.GONE
-                    eventAdapter.submitList(events)
-                }
-                Log.d("UpdateEventsForDate", "betöltött ${events.size} event itt: $selectedDate")
-            } catch (e: Exception) {
-                Log.e("CalendarFragment", "eeeee baj", e)
-                Toast.makeText(
-                    requireContext(),
-                    "Error loading events",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+    private fun hideKeyboard() {
+        val view = activity?.currentFocus
+        if (view != null) {
+            val imm =
+                activity?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.hideSoftInputFromWindow(view.windowToken, 0)
+            view.clearFocus()
         }
     }
 
