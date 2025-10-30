@@ -34,7 +34,7 @@ class TodayViewModel(private val application: Application) : AndroidViewModel(ap
     private val projectDao = App.database.projectDao()
 
     private val client = OkHttpClient()
-    private val apiKey = "AIzaSyCtQ8vKKwdZsmKaesTfTO2l0FJ8CtTYzRQ"
+    private val apiKey = ""
     private val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
     private val _currentUserEmail = MutableLiveData<String?>(null)

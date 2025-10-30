@@ -35,16 +35,18 @@ class CalendarViewModel(private val application: Application) : AndroidViewModel
     private val projectDao = App.database.projectDao()
 
     private val client = OkHttpClient()
-    private val apiKey = "AIzaSyCtQ8vKKwdZsmKaesTfTO2l0FJ8CtTYzRQ"
+    private val apiKey = ""
     private val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
     private val _selectedDate = MutableLiveData(LocalDate.now())
     private val _currentUserEmail = MutableLiveData<String?>(null)
     private val _projects = MutableLiveData<List<Project>>(emptyList())
     private val _chatHistory = MutableLiveData<List<ChatMessage>>(emptyList())
+    private val _isSendingMessage = MutableLiveData<Boolean>(false)
 
     val projects: LiveData<List<Project>> = _projects
     val chatHistory: LiveData<List<ChatMessage>> = _chatHistory
+    val isSendingMessage: LiveData<Boolean> = _isSendingMessage
 
     val eventsForSelectedDate = MediatorLiveData<List<Event>>()
 
@@ -184,6 +186,9 @@ class CalendarViewModel(private val application: Application) : AndroidViewModel
     }
 
     fun sendMessage(message: String) {
+        if (_isSendingMessage.value == true) return
+
+        _isSendingMessage.postValue(true)
         val newHistory = addMessageToChat("user", message)
 
         viewModelScope.launch {
@@ -196,6 +201,8 @@ class CalendarViewModel(private val application: Application) : AndroidViewModel
                 }
             } catch (e: Exception) {
                 addMessageToChat("System", "Error: ${e.message}")
+            } finally {
+                _isSendingMessage.postValue(false)
             }
         }
     }

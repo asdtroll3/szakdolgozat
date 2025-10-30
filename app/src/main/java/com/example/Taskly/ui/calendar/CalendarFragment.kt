@@ -129,6 +129,11 @@ class CalendarFragment : Fragment() {
             chatDisplay.text = chatText
             chatScrollView.post { chatScrollView.fullScroll(View.FOCUS_DOWN) }
         }
+        viewModel.isSendingMessage.observe(viewLifecycleOwner) { isSending ->
+            sendButton.isEnabled = !isSending
+            sendButton.text =
+                if (isSending) getString(R.string.sending) else getString(R.string.send)
+        }
     }
 
     private fun initializeChatViews(view: View) {
@@ -146,11 +151,13 @@ class CalendarFragment : Fragment() {
 
     private fun handleSendMessage() {
         val message = userInput.text.toString().trim()
-        if (message.isNotEmpty()) {
-            viewModel.sendMessage(message)
-            userInput.text.clear()
-            hideKeyboard()
+        if (message.isEmpty()) {
+            Toast.makeText(context, "Please enter a message", Toast.LENGTH_SHORT).show()
+            return
         }
+        viewModel.sendMessage(message)
+        userInput.text.clear()
+        hideKeyboard()
     }
 
     private fun updateEventsTitle(date: LocalDate) {
