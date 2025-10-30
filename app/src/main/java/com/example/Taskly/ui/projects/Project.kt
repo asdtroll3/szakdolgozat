@@ -8,6 +8,5 @@ data class Project(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val ownerEmail: String,
     val name: String,
-    val iconName: String,
-    val color: Int? = null
+    val iconName: String
 )

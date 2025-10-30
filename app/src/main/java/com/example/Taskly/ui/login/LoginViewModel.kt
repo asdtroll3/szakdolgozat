@@ -77,8 +77,27 @@ class LoginViewModel : ViewModel() {
             return "Username must be between 3 and 10 characters"
         }
 
-        if (!email.contains("@")) {
-            return "Invalid email address"
+        val localPart = email.substringBefore('@')
+        val domainPart = email.substringAfter('@')
+
+        if (email.count { it == '@' } != 1) {
+            return "Email must contain exactly one '@' sign"
+        }
+
+        if (localPart.isEmpty()) {
+            return "Invalid email format (e.g., user@domain.com)"
+        }
+
+        if (domainPart.isEmpty()) {
+            return "Invalid email format (e.g., user@domain.com)"
+        }
+
+        if (domainPart.count { it == '.' } != 1) {
+            return "Invalid email format (e.g., user@domain.com)"
+        }
+
+        if (domainPart.startsWith(".") || domainPart.endsWith(".")) {
+            return "Invalid email format (e.g., user@domain.com)"
         }
 
         if (userDao.findUserByEmail(email) != null) {
